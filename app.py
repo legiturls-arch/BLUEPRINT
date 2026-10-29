@@ -4,8 +4,8 @@
 
 import math
 from pathlib import Path
-
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, model_validator
 
@@ -31,10 +31,7 @@ app = FastAPI(
 
 @app.get("/")
 def home():
-    return {
-        "message": "Welcome to BLUEPRINT Virtual Engineering Lab",
-        "status": "running",
-    }
+    return RedirectResponse(url="/ui/index.html")
 
 
 @app.get("/health")
