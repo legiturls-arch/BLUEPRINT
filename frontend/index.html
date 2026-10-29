@@ -1,0 +1,124 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#050d1b">
+  <title>Blueprint | Virtual Engineering Lab</title>
+  <link rel="stylesheet" href="/ui/style.css">
+</head>
+
+<body class="blueprint-login">
+  <main class="login-layout">
+
+    <section class="login-hero">
+      <div class="brand">
+        <div class="brand-mark">B</div>
+        <div>
+          <h1>BLUEPRINT</h1>
+          <p>VIRTUAL ENGINEERING LAB</p>
+        </div>
+      </div>
+
+      <h2 class="hero-title">
+        Design. Simulate.<br>
+        <span>Build the Future.</span>
+      </h2>
+
+      <p class="hero-description">
+        Explore robotic designs, simulate engineering systems, and analyze
+        predicted performance in your virtual engineering workspace.
+      </p>
+
+      <div class="hero-features">
+        <span>Physics Simulation</span>
+        <span>Robotic Design</span>
+        <span>Engineering Analysis</span>
+      </div>
+  <img src="/ui/lab.png" alt="BLUEPRINT Virtual Engineering Lab">
+     
+    </section>
+
+    <section class="login-card">
+      <div class="login-symbol">B</div>
+
+      <h2>Welcome to <span>Blueprint</span></h2>
+      <p class="login-subtitle">Sign in to enter your engineering lab.</p>
+
+      <button class="login-provider" id="google-btn" type="button">
+        <span class="provider-icon">G</span>
+        <span>Continue with Google</span>
+        <span class="provider-arrow">→</span>
+      </button>
+
+      <button class="login-provider" id="github-btn" type="button">
+        <span class="provider-icon">GH</span>
+        <span>Continue with GitHub</span>
+        <span class="provider-arrow">→</span>
+      </button>
+
+      <button class="login-provider" id="phone-toggle" type="button">
+        <span class="provider-icon">☎</span>
+        <span>Continue with phone</span>
+        <span class="provider-arrow">→</span>
+      </button>
+
+      <form id="phone-form" hidden>
+        <label for="phone-number">Phone number with country code</label>
+        <input
+          id="phone-number"
+          type="tel"
+          placeholder="+919876543210"
+          autocomplete="tel"
+        >
+
+        <div id="recaptcha-container"></div>
+
+        <button
+          class="login-provider login-primary"
+          id="send-otp"
+          type="button"
+        >
+          Send OTP
+        </button>
+
+        <div id="otp-section" hidden>
+          <label for="otp-code">Verification code</label>
+          <input
+            id="otp-code"
+            type="text"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            placeholder="6-digit OTP"
+          >
+
+          <button
+            class="login-provider login-primary"
+            id="verify-otp"
+            type="button"
+          >
+            Verify and open lab
+          </button>
+        </div>
+      </form>
+
+      <p id="login-message" class="login-message" role="status" aria-live="polite"></p>
+
+      <div class="login-divider">SECURE ACCESS</div>
+
+      <p class="login-legal">
+        Authentication powered by Firebase.<br>
+        Simulation results are theoretical estimates.
+      </p>
+    </section>
+
+    <footer class="login-footer">
+      BLUEPRINT © 2026 · VIRTUAL ENGINEERING LAB
+    </footer>
+
+  </main>
+
+  <script type="module" src="/ui/script.js"></script>
+</body>
+</html>

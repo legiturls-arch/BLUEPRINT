@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BLUEPRINT | 3D Robot Builder</title>
+  <link rel="stylesheet" href="./builder.css">
+  <script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+  <header>
+    <div><b>BLUEPRINT</b><small>VIRTUAL ENGINEERING LAB</small></div>
+    <span id="api-status" role="status" aria-live="polite">Connecting…</span>
+    <button id="reset" type="button">Reset scene</button>
+    <button id="simulate" type="button">Run simulation</button>
+
+    <div class="driving-controls" role="group" aria-labelledby="drive-heading">
+      <h3 id="drive-heading">Robot Controls</h3>
+
+      <div class="drive-grid">
+        <button type="button" data-drive="forward">⬆ Forward (W)</button>
+        <button type="button" data-drive="left">⬅ Left (A)</button>
+        <button type="button" data-drive="stop">⏹ Stop</button>
+        <button type="button" data-drive="right">➡ Right (D)</button>
+        <button type="button" data-drive="backward">⬇ Backward (S)</button>
+      </div>
+
+      <p id="drive-status" role="status" aria-live="polite">Robot stopped</p>
+    </div>
+  </header>
+
+  <main>
+    <!-- LEFT: component library -->
+    <aside class="panel">
+      <small class="eyebrow">BUILD</small>
+      <h2>Component library</h2>
+      <p>Add components to the 3D scene. Click a part to select it.</p>
+
+      <div class="library-tools">
+        <input
+          id="component-search"
+          type="search"
+          placeholder="Search all components..."
+          aria-label="Search components"
+        >
+
+        <select id="library-filter" aria-label="Filter component library">
+          <option value="all">All libraries</option>
+          <option value="engineering">Engineering</option>
+          <option value="space">Space</option>
+        </select>
+
+        <select id="category-filter" aria-label="Filter component category">
+          <option value="all">All categories</option>
+        </select>
+      </div>
+
+      <div id="component-list">Loading components…</div>
+      <p id="library-count" class="hint">Loading library…</p>
+
+      <div class="hint">Drag to orbit · Scroll to zoom · Click a part to select</div>
+    </aside>
+
+    <!-- CENTER: 3D viewport -->
+    <section class="center">
+      <div class="viewhead">
+        <div><small class="eyebrow">ASSEMBLY VIEW</small><h1>3D Robot Workspace</h1></div>
+        <span id="part-count">0 parts</span>
+      </div>
+      <div id="viewport" aria-label="3D assembly viewport">
+        <span class="viewlabel">PERSPECTIVE · VISUAL SCALE</span>
+        <div id="error" role="alert" hidden></div>
+      </div>
+      <p class="footnote">Prototype geometry — not manufacturing-ready CAD.</p>
+    </section>
+
+    <!-- RIGHT: part inspector + assembly summary -->
+    <aside class="panel">
+      <small class="eyebrow">PROPERTIES</small>
+      <h2>Part inspector</h2>
+      <p id="empty">Select a component in the scene to edit it.</p>
+
+      <div id="inspector" hidden>
+        <!-- Transform tool buttons. JS must set aria-pressed and the editor mode;
+             the buttons alone do not change anything in the scene. -->
+        <div class="transform-tools" role="group" aria-label="Transform tools">
+          <button id="move-tool" type="button" data-transform-mode="translate" aria-pressed="false">Move</button>
+          <button id="rotate-tool" type="button" data-transform-mode="rotate" aria-pressed="false">Rotate</button>
+          <button id="scale-tool" type="button" data-transform-mode="scale" aria-pressed="false">Scale</button>
+        </div>
+        <p id="transform-mode" class="hint" role="status" aria-live="polite">Transform mode: not set</p>
+
+        <b id="part-name">Part</b>
+        <small id="part-id"></small>
+
+        <label>Position X <input id="x" type="number" step="0.05"></label>
+        <label>Position Y <input id="y" type="number" step="0.05"></label>
+        <label>Position Z <input id="z" type="number" step="0.05"></label>
+        <label>Rotation Y (degrees) <input id="rot" type="number" step="5"></label>
+        <label>Scale (uniform) <input id="scale" type="number" step="0.05" min="0.05"></label>
+
+        <button id="apply" type="button">Apply transform</button>
+        <button id="remove" type="button">Remove component</button>
+        <p class="hint">Transforms affect the visual model only. Mechanical joints and collisions are not enforced.</p>
+      </div>
+
+      <hr>
+      <small class="eyebrow">ASSEMBLY SUMMARY</small>
+      <p>Total mass: <b id="mass">0 kg</b></p>
+      <p>Motors: <b id="motors">0</b></p>
+      <p>Wheels: <b id="wheels">0</b></p>
+    </aside>
+  </main>
+
+  <!-- Live sensor readings and per-component outputs.
+       Placeholders only: nothing here is populated until builder.js writes to it. -->
+  <section class="panel telemetry" aria-labelledby="telemetry-heading">
+    <small class="eyebrow">LIVE DATA</small>
+    <h2 id="telemetry-heading">Sensors and component outputs</h2>
+    <p id="telemetry-message">No live data. Values appear only when builder.js or the API supplies them.</p>
+
+    <h3>Sensor readings</h3>
+    <p id="sensor-updated" class="hint">Last update: none</p>
+    <ul id="sensor-list"></ul>
+    <p id="sensor-empty" class="hint">No sensor readings available.</p>
+
+    <h3>Component outputs</h3>
+    <div class="table-scroll">
+      <table id="component-outputs">
+        <caption class="hint">Output values reported per component</caption>
+        <thead>
+          <tr>
+            <th scope="col">Component</th>
+            <th scope="col">Output</th>
+            <th scope="col">Value</th>
+            <th scope="col">Status</th>
+          </tr>
+        </thead>
+        <tbody id="component-output-body">
+          <tr id="component-output-empty"><td colspan="4">No component output data.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Row templates for JS to clone (inert until used) -->
+    <template id="sensor-row-template">
+      <li>
+        <span data-field="name"></span>
+        <b data-field="value">—</b>
+        <small data-field="unit"></small>
+      </li>
+    </template>
+    <template id="output-row-template">
+      <tr>
+        <td data-field="component"></td>
+        <td data-field="output"></td>
+        <td data-field="value">—</td>
+        <td data-field="status"></td>
+      </tr>
+    </template>
+  </section>
+
+  <!-- Simulation status, results, and engineering warnings -->
+  <section class="panel results" aria-labelledby="results-heading">
+    <small class="eyebrow">ENGINEERING CHECK</small>
+    <h2 id="results-heading">Simulation results</h2>
+
+    <div id="sim-status" role="status" aria-live="polite">
+      <span>Simulation status: <b id="sim-state">Not run</b></span>
+      <span>Elapsed: <b id="sim-time">—</b></span>
+      <span id="sim-detail" class="hint"></span>
+    </div>
+
+    <p id="result-message">Add a chassis, motor and wheels, then run a simulation.</p>
+    <div id="result-grid" hidden>
+      <div>Driving force <b id="driving">—</b></div>
+      <div>Gravity force <b id="gravity">—</b></div>
+      <div>Net force <b id="net">—</b></div>
+      <div>Acceleration <b id="accel">—</b></div>
+      <div>Final velocity <b id="final-velocity">—</b></div>
+      <div>Displacement <b id="distance-traveled">—</b></div>
+      <div>Wheel rotations <b id="wheel-rotations">—</b></div>
+      <div>Wheel speed <b id="wheel-rpm">—</b></div>
+    </div>
+    <div id="analysis"></div>
+
+    <div id="warnings">
+      <h3 id="warnings-heading">Engineering warnings <span id="warning-count">0</span></h3>
+      <ul id="warning-list" aria-live="polite"></ul>
+      <p id="warnings-empty" class="hint">No warnings reported. This does not mean the design has been verified.</p>
+    </div>
+  </section>
+
+  <script type="module" src="./builder.js"></script>
+</body>
+</html>
