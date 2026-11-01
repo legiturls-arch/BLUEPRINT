@@ -69,7 +69,7 @@ nav a:hover, nav a.active {
   color: var(--cyan);
 }
 
-#api-status { color: var(--muted); font-size: 12px; }
+#connection-status { color: var(--muted); font-size: 12px; }
 
 main { max-width: 1440px; margin: auto; padding: 0 5%; }
 
@@ -166,6 +166,37 @@ select {
   color: var(--text);
 }
 
+#space-library > input[type="search"],
+#space-library > select,
+#clear-filters {
+  min-width: 0;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #0b1423;
+  color: var(--text);
+  font: inherit;
+}
+
+#space-library > input[type="search"] {
+  width: 100%;
+  margin: 20px 0 10px;
+}
+
+#space-library > select {
+  margin: 0 6px 8px 0;
+}
+
+#clear-filters {
+  cursor: pointer;
+}
+
+#clear-filters:hover {
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+
 .chips {
   display: flex;
   gap: 8px;
@@ -191,6 +222,24 @@ select {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
+}
+
+#component-grid {
+  display: block;
+}
+
+.component-section {
+  margin: 24px 0;
+}
+
+.component-section > h2 {
+  margin: 0 0 12px;
+  color: var(--cyan);
+  font-size: 20px;
+}
+
+.component-section .component-grid {
+  display: grid;
 }
 
 .component-card {

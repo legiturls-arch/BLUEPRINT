@@ -17,7 +17,7 @@
       <a href="./space.html" class="active">Engineering Library</a>
       <a href="./builder.html">3D Builder</a>
     </nav>
-    <span id="api-status">Connecting…</span>
+    <span id="connection-status">Connecting…</span>
   </header>
 
 
@@ -49,11 +49,21 @@
         <option value="all">All categories</option>
     </select>
 
+    <select id="type-filter" aria-label="Filter by component type">
+        <option value="all">All component types</option>
+    </select>
+
+    <select id="sort-order" aria-label="Sort components">
+        <option value="name">Sort by name</option>
+        <option value="category">Sort by category</option>
+    </select>
+
+    <button id="clear-filters" type="button">Clear filters</button>
+
     <div id="category-chips" class="chips"></div>
 
-    <p id="api-status">Connecting to backend...</p>
     <p id="result-count">Loading components...</p>
-    <div id="message" hidden></div>
+    <div id="message" class="message" hidden></div>
     <div id="component-grid" class="component-grid"></div>
 </main>
 

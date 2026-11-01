@@ -60,14 +60,14 @@ def test_health_route(client):
 # ============================================================
 
 def test_components_route(client):
-    # Request all available engineering components.
+    # Request the unified engineering and Space Library catalogue.
     response = client.get("/api/components")
 
     assert response.status_code == 200
     components = response.json()["components"]
 
-    # The current unified component library contains 21 items.
-    assert len(components) == 21
+    # Keep the route assertion aligned with the current catalogue entries.
+    assert len(components) == 27
 
     # Find the basic motor without depending on its list position.
     motor = next(
