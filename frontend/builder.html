@@ -14,114 +14,179 @@
 }
 </script>
 </head>
-<body>
-  <header>
-    <div><b>BLUEPRINT</b><small>VIRTUAL ENGINEERING LAB</small></div>
-    <span id="api-status" role="status" aria-live="polite">Connecting…</span>
-    <button id="reset" type="button">Reset scene</button>
-    <button id="simulate" type="button">Run simulation</button>
-
-    <div class="driving-controls" role="group" aria-labelledby="drive-heading">
-      <h3 id="drive-heading">Robot Controls</h3>
-
-      <div class="drive-grid">
-        <button type="button" data-drive="forward">⬆ Forward (W)</button>
-        <button type="button" data-drive="left">⬅ Left (A)</button>
-        <button type="button" data-drive="stop">⏹ Stop</button>
-        <button type="button" data-drive="right">➡ Right (D)</button>
-        <button type="button" data-drive="backward">⬇ Backward (S)</button>
+<body class="builder-workspace">
+  <header class="workspace-header">
+    <a class="brand-lockup" href="./index.html" aria-label="BLUEPRINT dashboard">
+      <span class="brand-mark" aria-hidden="true">B</span>
+      <span><b>BLUEPRINT</b><small>VIRTUAL ENGINEERING LAB</small></span>
+    </a>
+    <nav class="workspace-nav" aria-label="Main navigation">
+      <a href="./index.html">Dashboard</a>
+      <a class="active" href="./builder.html" aria-current="page">Build</a>
+      <div class="simulate-control">
+        <button id="simulate" type="button" title="Run the engineering simulation">Simulate</button>
       </div>
-
-      <p id="drive-status" role="status" aria-live="polite">Robot stopped</p>
+      <a href="#results">Analyze</a>
+      <button id="library-nav" type="button" aria-controls="component-library"
+        aria-expanded="false">Library</button>
+    </nav>
+    <div class="header-tools">
+      <span id="api-status" class="api-status" role="status" aria-live="polite">Connecting…</span>
+      <button id="theme-toggle" class="icon-button" type="button"
+        aria-label="Toggle simulation lighting appearance" aria-pressed="false"
+        title="Toggle simulation lighting appearance">◐</button>
+      <span class="profile-chip" title="Local workspace session">
+        <span class="profile-avatar" aria-hidden="true">B</span><span>Workspace</span>
+      </span>
     </div>
   </header>
 
-  <main>
-    <!-- LEFT: component library -->
-    <aside class="panel">
-      <small class="eyebrow">BUILD</small>
-      <h2>Component library</h2>
-      <p>Add components to the 3D scene. Click a part to select it.</p>
+  <main id="workspace" class="workspace-stage">
+    <div id="viewport" aria-label="3D assembly viewport">
+      <span class="viewlabel">PERSPECTIVE · VISUAL SCALE</span>
+      <div class="viewport-hud" aria-label="Assembly status">
+        <strong>ASSEMBLY VIEW</strong>
+        <span id="part-count">0 parts</span>
+        <span>Mass <b id="mass">0 kg</b></span>
+        <span>Motors <b id="motors">0</b></span>
+        <span>Wheels <b id="wheels">0</b></span>
+      </div>
+      <div id="error" role="alert" hidden></div>
+      <span class="viewport-help">Orbit drag · Pan right-drag · Scroll to zoom</span>
+    </div>
 
+    <aside id="component-library" class="panel library-panel workspace-panel"
+      aria-labelledby="library-heading" tabindex="-1">
+      <div class="workspace-panel-heading">
+        <h2 id="library-heading">Component Library</h2>
+        <span id="library-count" class="library-count">Loading…</span>
+      </div>
       <div class="library-tools">
-        <input
-          id="component-search"
-          type="search"
-          placeholder="Search all components..."
-          aria-label="Search components"
-        >
-
-        <select id="library-filter" aria-label="Filter component library">
-          <option value="all">All libraries</option>
-          <option value="engineering">Engineering</option>
-          <option value="space">Space</option>
+        <input id="component-search" type="search"
+          placeholder="Search components..." aria-label="Search components">
+        <select id="type-filter" aria-label="All component types">
+          <option value="all">All component types</option>
         </select>
-
-        <select id="category-filter" aria-label="Filter component category">
+        <select id="category-filter" aria-label="All categories">
           <option value="all">All categories</option>
         </select>
+        <button id="clear-filters" type="button">Clear filters</button>
       </div>
-
       <div id="component-list">Loading components…</div>
-      <p id="library-count" class="hint">Loading library…</p>
-
-      <div class="hint">Drag to orbit · Scroll to zoom · Click a part to select</div>
+      <div class="panel-resize-handle" data-resize-panel="library" role="separator"
+        aria-label="Resize component library" aria-orientation="vertical"
+        aria-valuemin="220" aria-valuemax="400" tabindex="0"></div>
     </aside>
 
-    <!-- CENTER: 3D viewport -->
-    <section class="center">
-      <div class="viewhead">
-        <div><small class="eyebrow">ASSEMBLY VIEW</small><h1>3D Robot Workspace</h1></div>
-        <span id="part-count">0 parts</span>
+    <aside id="properties-panel" class="panel properties-panel workspace-panel"
+      aria-labelledby="properties-heading" tabindex="-1">
+      <div class="workspace-panel-heading">
+        <h2 id="properties-heading">Properties</h2>
+        <span class="eyebrow">INSPECTOR</span>
       </div>
-      <div id="viewport" aria-label="3D assembly viewport">
-        <span class="viewlabel">PERSPECTIVE · VISUAL SCALE</span>
-        <div id="error" role="alert" hidden></div>
-      </div>
-      <p class="footnote">Prototype geometry — not manufacturing-ready CAD.</p>
-    </section>
-
-    <!-- RIGHT: part inspector + assembly summary -->
-    <aside class="panel">
-      <small class="eyebrow">PROPERTIES</small>
-      <h2>Part inspector</h2>
-      <p id="empty">Select a component in the scene to edit it.</p>
-
+      <p id="empty" class="inspector-empty">Select a component in the viewport or library.</p>
       <div id="inspector" hidden>
-        <!-- Transform tool buttons. JS must set aria-pressed and the editor mode;
-             the buttons alone do not change anything in the scene. -->
+        <div class="selected-component-card">
+          <span id="selected-preview" class="selected-preview" aria-hidden="true"></span>
+          <div><strong id="selected-name"></strong><small id="selected-category"></small></div>
+          <p id="selected-specs" class="selected-specs"></p>
+        </div>
         <div class="transform-tools" role="group" aria-label="Transform tools">
           <button id="move-tool" type="button" data-transform-mode="translate" aria-pressed="false">Move</button>
           <button id="rotate-tool" type="button" data-transform-mode="rotate" aria-pressed="false">Rotate</button>
           <button id="scale-tool" type="button" data-transform-mode="scale" aria-pressed="false">Scale</button>
         </div>
-        <p id="transform-mode" class="hint" role="status" aria-live="polite">Transform mode: not set</p>
-
-        <b id="part-name">Part</b>
-        <small id="part-id"></small>
-
-        <label>Position X <input id="x" type="number" step="0.05"></label>
-        <label>Position Y <input id="y" type="number" step="0.05"></label>
-        <label>Position Z <input id="z" type="number" step="0.05"></label>
-        <label>Rotation Y (degrees) <input id="rot" type="number" step="5"></label>
-        <label>Scale (uniform) <input id="scale" type="number" step="0.05" min="0.05"></label>
-
-        <button id="apply" type="button">Apply transform</button>
-        <button id="remove" type="button">Remove component</button>
-        <p class="hint">Transforms affect the visual model only. Mechanical joints and collisions are not enforced.</p>
+        <label class="installed-part-picker">Installed component
+          <select id="installed-part-select" aria-label="Select an installed component">
+            <option value="">Select an installed component</option>
+          </select>
+        </label>
+        <h3 id="component-controls-heading">Component controls</h3>
+        <p id="component-controls-empty" class="hint" role="status" aria-live="polite">
+          This component has no additional controls.
+        </p>
+        <div id="component-controls" class="component-control-fields" hidden></div>
+        <div class="component-actions">
+          <button id="duplicate-selected" type="button">Duplicate</button>
+          <button id="remove-selected" class="danger-button" type="button">Remove</button>
+        </div>
       </div>
-
-      <hr>
-      <small class="eyebrow">ASSEMBLY SUMMARY</small>
-      <p>Total mass: <b id="mass">0 kg</b></p>
-      <p>Motors: <b id="motors">0</b></p>
-      <p>Wheels: <b id="wheels">0</b></p>
+      <div class="panel-resize-handle" data-resize-panel="properties" role="separator"
+        aria-label="Resize properties panel" aria-orientation="vertical"
+        aria-valuemin="240" aria-valuemax="400" tabindex="0"></div>
     </aside>
+
+    <section id="movement-panel" class="panel movement-controls workspace-panel"
+      aria-labelledby="movement-heading">
+      <div class="workspace-panel-heading">
+        <h2 id="movement-heading">Robot Movement</h2>
+        <span class="movement-multiplier"><output id="drive-speed-value">0.50×</output></span>
+      </div>
+      <div class="drive-grid" aria-label="Movement controls">
+        <button type="button" data-drive="forward" aria-label="Forward, W">W</button>
+        <button type="button" data-drive="left" aria-label="Left, A">A</button>
+        <button type="button" data-drive="stop" aria-label="Stop, Space">Stop</button>
+        <button type="button" data-drive="right" aria-label="Right, D">D</button>
+        <button type="button" data-drive="backward" aria-label="Backward, S">S</button>
+      </div>
+      <label class="range-control">Speed <output id="drive-speed-label">0.50×</output>
+        <input id="drive-speed" type="range" min="0" max="100" step="1" value="50">
+      </label>
+      <p id="drive-status" role="status" aria-live="polite">Robot stopped</p>
+    </section>
+
+    <section class="panel lab-controls lighting-panel workspace-panel"
+      aria-labelledby="lighting-heading">
+      <div class="lighting-heading">
+        <h2 id="lighting-heading">Lighting Controls</h2>
+        <label class="control-toggle"><input id="lights-enabled" type="checkbox" checked> Main light</label>
+        <label class="control-toggle"><input id="headlight-enabled" type="checkbox"> Headlight</label>
+      </div>
+      <label class="lighting-mode">Beam
+        <select id="headlight-beam-type" aria-label="Headlight beam type">
+          <option value="low">Low</option>
+          <option value="high">High</option>
+          <option value="fog">Fog</option>
+        </select>
+      </label>
+      <label class="lighting-color">Color
+        <input id="rgb-color" type="color" value="#45d6e8" aria-label="Light color">
+      </label>
+      <label class="range-control">Brightness <output id="rgb-brightness-value">1.2</output>
+        <input id="rgb-brightness" type="range" min="0" max="4" step="0.05" value="1.2">
+      </label>
+      <label class="range-control">Range <output id="headlight-range-value">12 m</output>
+        <input id="headlight-range" type="range" min="2" max="30" step="1" value="12">
+      </label>
+      <label class="range-control">Beam angle <output id="headlight-angle-value">24°</output>
+        <input id="headlight-angle" type="range" min="8" max="60" step="1" value="16">
+      </label>
+      <div class="lighting-extras">
+        <label class="control-toggle"><input id="auxiliary-light-enabled" type="checkbox"> Auxiliary</label>
+        <label class="control-toggle"><input id="rear-light-enabled" type="checkbox"> Rear light</label>
+      </div>
+      <input id="dark-mode" type="checkbox" hidden aria-hidden="true">
+    </section>
+
+    <div class="workspace-toolbar" role="toolbar" aria-label="Workspace actions">
+      <button id="toggle-movement" type="button" aria-controls="movement-panel"
+        aria-expanded="true" title="Show or hide movement controls">Movement</button>
+      <button id="toggle-library" type="button" aria-controls="component-library"
+        aria-expanded="false">Components</button>
+      <button id="toggle-properties" type="button" aria-controls="properties-panel"
+        aria-expanded="false">Properties</button>
+      <span class="toolbar-divider" aria-hidden="true"></span>
+      <button id="reset-view" type="button" title="Reset the viewport camera">Reset view</button>
+      <button id="reset-movement" type="button" title="Restore the assembly pose">Reset pose</button>
+      <button id="reset" type="button" title="Remove all components">Reset scene</button>
+      <button id="screenshot" type="button" title="Save a viewport screenshot">Screenshot</button>
+      <button id="fullscreen" type="button" title="Enter fullscreen workspace">Fullscreen</button>
+    </div>
   </main>
 
   <!-- Live sensor readings and per-component outputs.
        Placeholders only: nothing here is populated until builder.js writes to it. -->
-  <section class="panel telemetry" aria-labelledby="telemetry-heading">
+  <section id="telemetry" class="panel telemetry" aria-labelledby="telemetry-heading">
     <small class="eyebrow">LIVE DATA</small>
     <h2 id="telemetry-heading">Sensors and component outputs</h2>
     <p id="telemetry-message">No live data. Values appear only when builder.js or the API supplies them.</p>
@@ -168,7 +233,7 @@
   </section>
 
   <!-- Simulation status, results, and engineering warnings -->
-  <section class="panel results" aria-labelledby="results-heading">
+  <section id="results" class="panel results" aria-labelledby="results-heading">
     <small class="eyebrow">ENGINEERING CHECK</small>
     <h2 id="results-heading">Simulation results</h2>
 
