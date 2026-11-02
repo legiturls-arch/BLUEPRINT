@@ -386,3 +386,17 @@
     padding: 23px 18px;
   }
 }
+
+@media (max-width: 600px) {
+  .blueprint-login {
+    overflow-x: hidden;
+  }
+
+  .login-hero > img {
+    display: block;
+    width: 100%;
+    max-width: 260px;
+    height: auto;
+    margin: 14px auto 0;
+  }
+}
