@@ -508,7 +508,7 @@ function setupPanelResizing() {
     };
 
     handle.addEventListener("pointerdown", event => {
-      if (event.button !== 0 || window.matchMedia("(max-width: 1100px)").matches) {
+      if (event.button !== 0 || window.matchMedia("(max-width: 1023px)").matches) {
         return;
       }
 
@@ -3136,7 +3136,7 @@ document.addEventListener("keyup", event => {
 });
 
 function closeMobilePanels() {
-  const expanded = !window.matchMedia("(max-width: 1100px)").matches;
+  const expanded = !window.matchMedia("(max-width: 1023px)").matches;
   for (const [panelId, buttonId] of [
     ["component-library", "toggle-library"],
     ["properties-panel", "toggle-properties"]
@@ -3150,7 +3150,7 @@ function closeMobilePanels() {
 }
 
 function setupWorkspaceActions() {
-  const isMobile = () => window.matchMedia("(max-width: 1100px)").matches;
+  const isMobile = () => window.matchMedia("(max-width: 1023px)").matches;
   const setDrawer = (panelId, buttonIds) => {
     const panel = $(panelId);
     if (!panel) return;
