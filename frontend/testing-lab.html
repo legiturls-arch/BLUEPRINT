@@ -37,6 +37,15 @@
         <select id="robot-select" aria-label="Robot assembly"></select>
       </label>
       <p id="robot-summary" class="hint" role="status">No saved builder assembly found. Open Build and use the Testing Lab link to save the current robot.</p>
+      <div class="assembly-viewport-shell">
+        <div id="assembly-viewport" aria-label="3D view of the selected saved robot assembly">
+          <div id="assembly-viewport-status" class="viewport-status" role="status">No assembly selected</div>
+        </div>
+        <div class="viewport-actions" aria-label="Assembly viewport controls">
+          <button id="assembly-reset-view" type="button">Reset view</button>
+          <button id="assembly-fit-view" type="button">Fit assembly</button>
+        </div>
+      </div>
       <label>Campaign preset
         <select id="campaign-select" aria-label="Test campaign">
           <option value="">Custom test conditions</option>
@@ -218,5 +227,6 @@
     </section>
   </main>
   <script src="./testing-lab.js"></script>
+  <script type="module" src="./testing-lab-3d.js"></script>
 </body>
 </html>

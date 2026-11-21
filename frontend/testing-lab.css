@@ -75,6 +75,49 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 }
 .form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
 .robot-panel > label { max-width: 600px; margin: 12px 0; }
+.assembly-viewport-shell {
+  position: relative;
+  height: 420px;
+  margin: 14px 0 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #0a1220;
+}
+#assembly-viewport {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+#assembly-viewport canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+#assembly-viewport canvas:active { cursor: grabbing; }
+.viewport-status {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  padding: 8px 11px;
+  color: var(--muted);
+  background: rgba(10, 18, 32, .92);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  font-size: 12px;
+}
+.viewport-actions {
+  position: absolute;
+  z-index: 3;
+  right: 10px;
+  bottom: 10px;
+  display: flex;
+  gap: 6px;
+}
+.viewport-actions button { min-height: 34px; padding: 7px 10px; font-size: 11px; }
 .hint { color: var(--muted); font-size: 12px; line-height: 1.55; }
 .robot-panel .hint { margin-bottom: 10px; }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -100,10 +143,12 @@ pre { max-height: 420px; overflow: auto; padding: 12px; color: #c9d8ed; backgrou
   .lab-layout { grid-template-columns: minmax(0, 1fr); padding: 12px; }
   .intro, .robot-panel, .terrain-panel, .report-panel { grid-column: auto; }
   .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .assembly-viewport-shell { height: 360px; }
 }
 @media (max-width: 520px) {
   .lab-header { padding: 12px; }
   .form-grid { grid-template-columns: minmax(0, 1fr); }
   .section-heading { align-items: flex-start; }
   .panel { padding: 13px; }
+  .assembly-viewport-shell { height: 300px; }
 }

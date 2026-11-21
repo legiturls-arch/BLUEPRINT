@@ -2776,6 +2776,7 @@ function saveRobotConfigurationForTesting() {
     name: `Builder assembly · ${new Date().toLocaleString()}`,
     saved_at: new Date().toISOString(),
     component_ids: installedIds,
+    assembly: serializeDesign(),
     configuration: {
       total_mass_kg: Math.max(parts.reduce((sum, part) => sum + part.mass, 0), 0.01),
       motor_torque_nm: torque,
