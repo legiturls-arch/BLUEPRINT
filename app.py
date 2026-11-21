@@ -33,6 +33,49 @@ app = FastAPI(
     version="0.4.0",
 )
 
+# The SHA-256 source in script-src authorizes only builder.html's import map.
+SECURITY_HEADERS = {
+    "Content-Security-Policy": (
+        "default-src 'self'; "
+        "base-uri 'self'; "
+        "object-src 'none'; "
+        "frame-ancestors 'none'; "
+        "form-action 'self'; "
+        "script-src 'self' https://www.gstatic.com https://cdn.jsdelivr.net "
+        "https://apis.google.com "
+        "'sha256-JdScvVUA/cDmBCFIYLh+HW5jutDgoIZymbVEtFkzU6k='; "
+        "style-src 'self'; "
+        "img-src 'self' https://www.gstatic.com https://www.google.com; "
+        "font-src 'self'; "
+        "connect-src 'self' https://identitytoolkit.googleapis.com "
+        "https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com "
+        "https://www.googleapis.com https://apis.google.com "
+        "https://www.google.com https://www.recaptcha.net; "
+        "frame-src 'self' https://blueprint-266f8.firebaseapp.com "
+        "https://accounts.google.com https://www.google.com "
+        "https://recaptcha.google.com https://www.recaptcha.net; "
+        "worker-src 'self' blob:; "
+        "manifest-src 'self'; "
+        "script-src-attr 'none'"
+    ),
+    "X-Content-Type-Options": "nosniff",
+    "Permissions-Policy": (
+        "accelerometer=(), autoplay=(), camera=(), "
+        "display-capture=(), geolocation=(), gyroscope=(), magnetometer=(), "
+        "microphone=(), midi=(), payment=(), usb=(), xr-spatial-tracking=(), "
+        "fullscreen=(self)"
+    ),
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+}
+
+
+@app.middleware("http")
+async def add_security_headers(request, call_next):
+    response = await call_next(request)
+    for header, value in SECURITY_HEADERS.items():
+        response.headers[header] = value
+    return response
+
 
 # ------------------------------------------
 # 1. Basic routes
