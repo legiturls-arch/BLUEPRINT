@@ -128,6 +128,8 @@
 .rover-image {
   display: block;
   width: 100%;
+  height: auto;
+  max-width: 100%;
   max-height: 360px;
   margin-top: 24px;
   object-fit: contain;
@@ -403,9 +405,12 @@
 
 /* ===== Responsive polish (phone/ tablet)
 ===== */
-@supports (height: 100dvh) (
-.blueprint-login,
-.login-layout {min-height: 100dvh;}}
+@supports (height: 100dvh) {
+  .blueprint-login,
+  .login-layout {
+    min-height: 100dvh;
+  }
+}
 /* Notch / rounded-corner safe areas
 */
 .login-layout{
