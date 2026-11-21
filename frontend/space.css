@@ -280,7 +280,16 @@ select {
   font-size: 9px;
 }
 
-.component-card h3 { margin: 16px 0 5px; font-size: 17px; }
+.component-card h3 {
+  margin: 16px 0 5px;
+  min-height: 44px;
+  align-content: start;
+  font-size: 17px;
+  line-height: 1.25;
+  text-align: left;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
 .component-card p { margin: 0 0 14px; color: var(--muted); font-size: 12px; }
 
 .specs {
