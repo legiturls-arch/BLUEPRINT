@@ -400,3 +400,25 @@
     margin: 14px auto 0;
   }
 }
+
+/* ===== Responsive polish (phone/ tablet)
+===== */
+@supports (height: 100dvh) (
+.blueprint-login,
+.login-layout {min-height: 100dvh;}}
+/* Notch / rounded-corner safe areas
+*/
+.login-layout{
+padding-left: max(5%, env(safe-area-inset-left));
+padding-right: max(5%, env(safe-area-inset-right));
+}
+img {max-width: 100%; height: auto;}
+@media (max-width: 850px) {
+.login-layout{
+padding-left: max(20px, env(safe-area-inset-left));
+padding-right: max(20px, env(safe-area-inset-right));
+}}
+@media(max-width: 430px){
+.rover-image{max-height: 220px;}
+.login-provider{min-height: 48px;}
+}

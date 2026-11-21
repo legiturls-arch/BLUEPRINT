@@ -2460,3 +2460,89 @@ body.builder-workspace > .results {
   height: 100dvh;
   min-height: 0;
 }
+
+/* =====================================================================
+   RESPONSIVE POLISH — phone + tablet  (keep this block at END of file)
+   ===================================================================== */
+
+html { -webkit-text-size-adjust: 100%; }
+.builder-workspace { overflow-x: hidden; }
+
+/* mouse text on desktop, touch text on phone/tablet */
+.help-touch { display: none; }
+@media (pointer: coarse) {
+  .help-mouse { display: none; }
+  .help-touch { display: inline; }
+}
+
+/* ---- TABLET (up to 1100px): header must not overflow ---- */
+@media (max-width: 1100px) {
+  .builder-workspace .workspace-header {
+    gap: 10px;
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
+  .brand-lockup small,
+  .api-status,
+  .profile-chip > span:last-child { display: none; }
+  .workspace-nav { min-width: 0; overflow-x: auto; scrollbar-width: none; }
+  .header-tools { flex-shrink: 0; }
+  .builder-workspace .viewlabel { display: none; }
+}
+
+/* ---- PHONE (<= 700px): bigger text + tap targets ---- */
+@media (max-width: 700px) {
+  .workspace-nav a,
+  .workspace-nav > button,
+  .simulate-control #simulate { min-height: 38px; font-size: 12px; }
+
+  .builder-workspace .workspace-toolbar {
+    bottom: max(8px, env(safe-area-inset-bottom));
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .builder-workspace .workspace-toolbar button {
+    min-height: 40px;
+    padding: 6px 11px;
+    font-size: 11px;
+  }
+
+  .viewport-hud { font-size: 10px; }
+  .movement-controls .workspace-panel-heading h2 { font-size: 12px; }
+  .builder-workspace .lighting-panel .control-toggle,
+  .lighting-panel label { font-size: 10px; }
+  .viewport-help { font-size: 10px; bottom: 74px; }
+}
+
+/* ---- Any touch screen: finger-friendly controls ---- */
+@media (pointer: coarse) {
+  button, select, summary { min-height: 40px; }
+  input[type="range"] { min-height: 28px; }
+  input[type="range"]::-webkit-slider-thumb { width: 24px; height: 24px; }
+  input[type="range"]::-moz-range-thumb { width: 24px; height: 24px; }
+  input[type="checkbox"] { width: 22px; height: 22px; }
+  .builder-workspace .workspace-toolbar button:hover { background: transparent; border-color: transparent; }
+}
+
+/* ---- Phone in landscape: very little height ---- */
+@media (max-height: 480px) and (orientation: landscape) {
+  .builder-workspace .workspace-stage { height: 100dvh; min-height: 0; }
+  .lighting-panel { max-height: 42dvh; overflow-y: auto; }
+}
+
+/* ---- final touch-screen tweaks ---- */
+@media (pointer: coarse) {
+  .builder-workspace .workspace-toolbar button { font-size: 11px; min-height: 40px; }
+  .builder-workspace .lighting-panel label,
+  .builder-workspace .lighting-panel .control-toggle { font-size: 11px; }
+}
+/* gesture hint: move it to the top so the bottom toolbar never covers it */
+@media (max-width: 1100px) {
+  .builder-workspace .viewport-help {
+    top: 118px; bottom: auto; left: 12px;
+    max-width: calc(100% - 235px);
+  }
+}
+@media (max-width: 700px) {
+  .builder-workspace .viewport-help { top: 170px; max-width: calc(100% - 215px); }
+}
