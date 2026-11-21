@@ -5,6 +5,9 @@
 # engineering analysis, invalid inputs, and edge cases.
 # ============================================================
 
+from html.parser import HTMLParser
+from pathlib import Path
+
 # Import pytest for fixtures, parameterized tests, and approx().
 import pytest
 
@@ -53,7 +56,58 @@ def test_health_route(client):
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 
-  
+
+@pytest.mark.parametrize("path", ["/health", "/api/components", "/ui/index.html"])
+def test_security_headers_are_applied_to_api_and_static_responses(client, path):
+    response = client.get(path)
+
+    assert response.status_code == 200
+    assert response.headers["x-content-type-options"] == "nosniff"
+    assert response.headers["referrer-policy"] == "strict-origin-when-cross-origin"
+    assert "fullscreen=(self)" in response.headers["permissions-policy"]
+    assert "camera=()" in response.headers["permissions-policy"]
+    policy = response.headers["content-security-policy"]
+    assert "https://www.gstatic.com" in policy
+    assert "https://cdn.jsdelivr.net" in policy
+    assert "https://apis.google.com" in policy
+    assert "https://accounts.google.com" in policy
+    assert "https://blueprint-266f8.firebaseapp.com" in policy
+    assert "frame-ancestors 'none'" in policy
+    assert "'unsafe-inline'" not in policy
+    assert "*" not in policy
+
+
+def test_security_headers_are_applied_to_not_found_responses(client):
+    response = client.get("/missing-resource")
+
+    assert response.status_code == 404
+    assert response.headers["x-content-type-options"] == "nosniff"
+    assert "content-security-policy" in response.headers
+
+
+class ImageAltParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.images_without_alt = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag != "img":
+            return
+        attributes = dict(attrs)
+        alt = attributes.get("alt")
+        if alt is None or alt.strip().lower() in {"image", "picture"}:
+            self.images_without_alt.append(attributes.get("src", "unknown"))
+
+
+def test_frontend_images_have_accessible_alt_text():
+    frontend = Path(__file__).resolve().parents[1] / "frontend"
+    parser = ImageAltParser()
+    for html_file in frontend.glob("*.html"):
+        parser.feed(html_file.read_text(encoding="utf-8"))
+
+    assert not parser.images_without_alt
+
+
 def test_assembly_validation_passes_complete_mobile_robot(client):
     response = client.post("/api/assembly/validate", json={
         "component_ids": [
