@@ -53,7 +53,7 @@ def test_health_route(client):
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 
-
+  
 def test_assembly_validation_passes_complete_mobile_robot(client):
     response = client.post("/api/assembly/validate", json={
         "component_ids": [
