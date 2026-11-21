@@ -54,6 +54,51 @@
       <p class="hint">A preset selects terrain and gravity only; run each test module separately.</p>
     </section>
 
+    <section class="panel environment-library" aria-labelledby="environment-library-heading">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">TESTING ENVIRONMENT LIBRARY</p>
+          <h2 id="environment-library-heading">Choose a 3D testing environment</h2>
+        </div>
+        <span id="environment-selection-status" class="status-chip" data-status="SELECTED">FLAT CONCRETE</span>
+      </div>
+      <div class="environment-toolbar">
+        <label>Search
+          <input id="environment-search" type="search" placeholder="Search environments">
+        </label>
+        <label>Terrain type
+          <select id="environment-category-filter">
+            <option value="all">All terrain types</option>
+            <option value="Outdoor">Outdoor</option>
+            <option value="Industrial">Industrial</option>
+            <option value="Mobility">Mobility</option>
+            <option value="Custom">Custom</option>
+          </select>
+        </label>
+        <label>Difficulty
+          <select id="environment-difficulty-filter">
+            <option value="all">All difficulties</option>
+            <option value="Basic">Basic</option>
+            <option value="Intermediate">Intermediate</option>
+            <option value="Advanced">Advanced</option>
+          </select>
+        </label>
+      </div>
+      <div class="environment-browser">
+        <div id="environment-grid" class="environment-grid" aria-live="polite"></div>
+        <aside id="environment-details" class="environment-details" aria-labelledby="selected-environment-name">
+          <img id="selected-environment-image" src="./images/environments/flat-concrete.webp"
+            alt="Preview of Flat Concrete testing environment">
+          <p class="eyebrow">SELECTED ENVIRONMENT</p>
+          <h3 id="selected-environment-name">Flat Concrete</h3>
+          <p id="selected-environment-description"></p>
+          <div id="selected-environment-tags" class="tag-list"></div>
+          <div id="environment-config" class="environment-config"></div>
+          <button id="load-selected-environment" class="primary" type="button">Load 3D Environment</button>
+        </aside>
+      </div>
+    </section>
+
     <section class="panel terrain-panel" aria-labelledby="terrain-heading">
       <div class="section-heading">
         <div><p class="eyebrow">PHASE 1 · MOBILITY</p><h2 id="terrain-heading">Terrain and obstacle test</h2></div>

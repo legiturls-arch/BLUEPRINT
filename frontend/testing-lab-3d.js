@@ -49,6 +49,9 @@ scene.add(grid);
 
 let assemblyRoot = new THREE.Group();
 scene.add(assemblyRoot);
+const environmentRoot = new THREE.Group();
+environmentRoot.name = "testing-environment";
+scene.add(environmentRoot);
 let catalog = [];
 let defaultView = null;
 
@@ -266,6 +269,258 @@ function animate() {
 }
 animate();
 
+const environmentDefinitions = [
+  { id:"flat-concrete", name:"Flat Concrete", category:"Industrial", difficulty:"Basic",
+    description:"Large flat concrete test ground with measurement markings and clear industrial surroundings.",
+    terrain:"flat_concrete", capabilities:["Basic mobility","Motor performance","Speed testing","Straight-line movement"],
+    config:[{key:"testLength",label:"Test length (m)",type:"number",value:12,min:2,max:30,step:1}] },
+  { id:"rocky-terrain", name:"Rocky Terrain", category:"Outdoor", difficulty:"Advanced",
+    description:"Uneven natural terrain with varied rock sizes for rover mobility and clearance testing.",
+    terrain:"rocky_terrain", capabilities:["Ground clearance","Wheel traction","Suspension","Terrain mobility"],
+    config:[{key:"rockSize",label:"Rock size (cm)",type:"number",value:18,min:5,max:50,step:1},{key:"roughness",label:"Terrain roughness",type:"range",value:55,min:10,max:100,step:5}] },
+  { id:"desert-terrain", name:"Desert Terrain", category:"Outdoor", difficulty:"Intermediate",
+    description:"Sandy landscape with medium dunes and elevation changes for traction and climb testing.",
+    terrain:"sand", capabilities:["Wheel traction","Sand mobility","Motor load","Climbing"],
+    config:[{key:"duneHeight",label:"Dune height (m)",type:"number",value:.8,min:.1,max:2,step:.1}] },
+  { id:"inclined-ramp", name:"Inclined Ramp", category:"Industrial", difficulty:"Intermediate",
+    description:"Adjustable concrete and metal ramp surface for torque and stability testing.",
+    terrain:"rough_concrete", capabilities:["Climbing","Torque requirement","Slope resistance","Stability"],
+    config:[{key:"slopeAngle",label:"Slope angle (degrees)",type:"number",value:20,min:5,max:45,step:1},{key:"rampLength",label:"Ramp length (m)",type:"number",value:8,min:2,max:15,step:.5}] },
+  { id:"obstacle-course", name:"Obstacle Course", category:"Mobility", difficulty:"Advanced",
+    description:"Concrete barriers, blocks, narrow paths and ramps for collision and navigation tests.",
+    terrain:"rough_concrete", capabilities:["Obstacle clearance","Collision detection","Navigation","Mobility"],
+    config:[{key:"obstacleHeight",label:"Obstacle height (m)",type:"number",value:.25,min:.05,max:1,step:.05},{key:"obstacleSpacing",label:"Obstacle spacing (m)",type:"number",value:2,min:.5,max:5,step:.1}] },
+  { id:"uneven-terrain", name:"Uneven Terrain", category:"Outdoor", difficulty:"Advanced",
+    description:"Natural hills and depressions with changing elevation for suspension and contact tests.",
+    terrain:"loose_soil", capabilities:["Stability","Suspension","Wheel contact","Adaptability"],
+    config:[{key:"hillHeight",label:"Hill height (m)",type:"number",value:.6,min:.1,max:1.5,step:.1},{key:"surfaceVariation",label:"Surface variation",type:"range",value:60,min:10,max:100,step:5}] },
+  { id:"gravel-road", name:"Gravel Road", category:"Outdoor", difficulty:"Intermediate",
+    description:"Loose stone road with irregular small aggregates for grip and rolling resistance tests.",
+    terrain:"gravel", capabilities:["Traction","Wheel grip","Motor performance","Surface resistance"],
+    config:[{key:"stoneSize",label:"Stone size (cm)",type:"number",value:3,min:.5,max:10,step:.5}] },
+  { id:"mud-terrain", name:"Mud Terrain", category:"Outdoor", difficulty:"Advanced",
+    description:"Soft muddy track with wet patches, wheel ruts and irregular elevation.",
+    terrain:"mud", capabilities:["Traction estimation","Wheel slip","Mobility limits","Motor load"],
+    config:[{key:"mudDepth",label:"Mud depth (cm)",type:"number",value:8,min:1,max:30,step:1},{key:"patchCount",label:"Mud patch count",type:"number",value:12,min:3,max:30,step:1}] },
+  { id:"sand-obstacle-course", name:"Sand Obstacle Course", category:"Mobility", difficulty:"Advanced",
+    description:"Sandy dunes and barrier sections combining climbing and obstacle clearance.",
+    terrain:"sand", capabilities:["Sand climbing","Obstacle clearance","Traction","Mobility"],
+    config:[{key:"obstacleHeight",label:"Obstacle height (m)",type:"number",value:.3,min:.05,max:1,step:.05},{key:"duneHeight",label:"Dune height (m)",type:"number",value:.7,min:.1,max:2,step:.1}] },
+  { id:"industrial-test-track", name:"Industrial Test Track", category:"Industrial", difficulty:"Intermediate",
+    description:"Indoor controlled facility with concrete floor, platforms and metal ramps.",
+    terrain:"rough_concrete", capabilities:["Controlled mobility","Payload testing","Structural testing","Motor performance"],
+    config:[{key:"rampAngle",label:"Ramp angle (degrees)",type:"number",value:15,min:5,max:35,step:1},{key:"platformHeight",label:"Platform height (m)",type:"number",value:.5,min:.1,max:1.5,step:.1}] },
+  { id:"stairs-steps", name:"Stairs and Steps", category:"Mobility", difficulty:"Advanced",
+    description:"Multiple concrete step configurations for ground clearance and stability testing.",
+    terrain:"rough_concrete", capabilities:["Step climbing","Ground clearance","Stability","Wheel geometry"],
+    config:[{key:"stepHeight",label:"Step height (m)",type:"number",value:.18,min:.05,max:.5,step:.01},{key:"stepWidth",label:"Step width (m)",type:"number",value:.35,min:.15,max:.8,step:.05},{key:"stepCount",label:"Number of steps",type:"number",value:5,min:2,max:10,step:1}] },
+  { id:"custom-arena", name:"Custom Testing Arena", category:"Custom", difficulty:"Intermediate",
+    description:"Open configurable arena with sections, measurement marks and removable challenge sections.",
+    terrain:"flat_concrete", capabilities:["Custom obstacles","Combined mobility","Experimental setup"],
+    config:[{key:"arenaSize",label:"Arena size (m)",type:"number",value:16,min:8,max:30,step:1},{key:"challengeCount",label:"Challenge sections",type:"number",value:4,min:1,max:8,step:1}] }
+];
+
+const envConfig = new Map();
+
+function disposeGroup(group) {
+  group.traverse(object => {
+    if (!object.isMesh) return;
+    object.geometry?.dispose();
+    if (Array.isArray(object.material)) object.material.forEach(item => item.dispose());
+    else object.material?.dispose();
+  });
+  group.clear();
+}
+
+function addBox(parent, size, position, color, roughness=.75) {
+  const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(size.x, size.y, size.z),
+    new THREE.MeshStandardMaterial({ color, roughness, metalness: roughness < .5 ? .5 : .05 })
+  );
+  mesh.position.set(position.x, position.y, position.z);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  parent.add(mesh);
+  return mesh;
+}
+
+function getConfig(id) {
+  const def = environmentDefinitions.find(item => item.id === id);
+  return { ...(Object.fromEntries(def.config.map(item => [item.key,item.value]))), ...(envConfig.get(id) || {}) };
+}
+
+function buildEnvironment(id) {
+  disposeGroup(environmentRoot);
+  const def = environmentDefinitions.find(item => item.id === id) || environmentDefinitions[0];
+  const cfg = getConfig(def.id);
+  const base = def.id === "desert-terrain" || def.id === "sand-obstacle-course" ? 0xc79655
+    : def.id === "mud-terrain" ? 0x66513e
+    : def.id === "gravel-road" ? 0x777269
+    : def.id === "rocky-terrain" ? 0x68675f
+    : def.id === "uneven-terrain" ? 0x747d5a
+    : 0x68727a;
+  ground.material.color.setHex(base);
+  grid.visible = def.id === "flat-concrete" || def.id === "industrial-test-track" || def.id === "custom-arena";
+
+  if (def.id === "flat-concrete" || def.id === "custom-arena") {
+    const length = def.id === "custom-arena" ? cfg.arenaSize : cfg.testLength;
+    for (let i=-Math.floor(length/2); i<=length/2; i+=1) {
+      addBox(environmentRoot,{x:.025,y:.006,z:18},{x:i,y:.002,z:0},0xd4dddc,.9);
+    }
+    for (let i=-9;i<=9;i+=1) addBox(environmentRoot,{x:length,y:.006,z:.025},{x:0,y:.003,z:i},0xd4dddc,.9);
+  }
+
+  if (def.id === "rocky-terrain") {
+    for (let i=0;i<90;i++) {
+      const x=(Math.random()-.5)*22,z=(Math.random()-.5)*18;
+      const s=.08+(cfg.rockSize/100)*(0.35+Math.random()*0.8);
+      const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(s,0),new THREE.MeshStandardMaterial({color:0x77766d,roughness:.95}));
+      rock.position.set(x,s*.38+.04,z); rock.rotation.set(Math.random(),Math.random(),Math.random()); rock.castShadow=rock.receiveShadow=true;
+      environmentRoot.add(rock);
+    }
+  }
+
+  if (def.id === "desert-terrain" || def.id === "sand-obstacle-course") {
+    for (let i=-3;i<=3;i++) {
+      const dune=new THREE.Mesh(new THREE.SphereGeometry(2.4,20,10,0,Math.PI*2,0,Math.PI/2),new THREE.MeshStandardMaterial({color:i%2?0xd1a86d:0xb98a4f,roughness:1}));
+      dune.scale.set(1.7,cfg.duneHeight/2,1); dune.position.set(i*4,-.05,(i%2)*3-1); dune.receiveShadow=true;
+      environmentRoot.add(dune);
+    }
+  }
+
+  if (def.id === "inclined-ramp" || def.id === "industrial-test-track") {
+    const angle=(def.id==="inclined-ramp"?cfg.slopeAngle:cfg.rampAngle)*Math.PI/180;
+    const rampLength=def.id==="inclined-ramp"?cfg.rampLength:7;
+    const ramp=addBox(environmentRoot,{x:rampLength,y:.12,z:4},{x:2,y:0,z:0},0x7b8588,.55);
+    ramp.position.y=rampLength*Math.sin(angle)/2;
+    ramp.rotation.z=-angle;
+  }
+
+  if (def.id === "obstacle-course" || def.id === "sand-obstacle-course") {
+    for (let i=-2;i<=2;i++) {
+      const height=cfg.obstacleHeight||.25;
+      addBox(environmentRoot,{x:1.2,y:height,z:1.2},{x:i*cfg.obstacleSpacing,y:height/2,z:(i%2)*2},0x7d8788,.8);
+    }
+  }
+
+  if (def.id==="uneven-terrain") {
+    for(let i=-4;i<=4;i++){
+      const h=cfg.hillHeight*(.35+Math.random()*1);
+      const hill=new THREE.Mesh(new THREE.CylinderGeometry(.9,2,h,12),new THREE.MeshStandardMaterial({color:0x697252,roughness:1}));
+      hill.position.set(i*2,h/2-.02,(i%2)*2); hill.scale.z=1.4; hill.receiveShadow=hill.castShadow=true; environmentRoot.add(hill);
+    }
+  }
+
+  if(def.id==="gravel-road"){
+    for(let i=0;i<260;i++){
+      const s=.025+(cfg.stoneSize/100)*(.5+Math.random());
+      const stone=new THREE.Mesh(new THREE.DodecahedronGeometry(s,0),new THREE.MeshStandardMaterial({color:0x8b8375,roughness:1}));
+      stone.position.set((Math.random()-.5)*18,-.005,(Math.random()-.5)*10); stone.rotation.set(Math.random(),Math.random(),Math.random()); stone.receiveShadow=true; environmentRoot.add(stone);
+    }
+  }
+
+  if(def.id==="mud-terrain"){
+    for(let i=0;i<cfg.patchCount;i++){
+      const patch=new THREE.Mesh(new THREE.CircleGeometry(.5+Math.random()*1.1,20),new THREE.MeshStandardMaterial({color:0x483729,roughness:.25,metalness:.05}));
+      patch.rotation.x=-Math.PI/2; patch.position.set((Math.random()-.5)*18,.012,(Math.random()-.5)*12); patch.scale.set(1.4+.5*Math.random(),.5+.5*Math.random(),1); patch.receiveShadow=true; environmentRoot.add(patch);
+    }
+  }
+
+  if(def.id==="industrial-test-track"){
+    addBox(environmentRoot,{x:5,y:cfg.platformHeight,z:4},{x:-6,y:cfg.platformHeight/2,z:-3},0x626e73,.6);
+    addBox(environmentRoot,{x:3,y:.18,z:5},{x:7,y:.09,z:3},0x9aa3a5,.35);
+  }
+
+  if(def.id==="stairs-steps"){
+    for(let i=0;i<cfg.stepCount;i++){
+      addBox(environmentRoot,{x:cfg.stepWidth,y:cfg.stepHeight*(i+1),z:2},{x:-5+i*cfg.stepWidth,y:cfg.stepHeight*(i+1)/2,z:0},0x7f8987,.75);
+    }
+  }
+
+  if(def.id==="custom-arena"){
+    for(let i=0;i<cfg.challengeCount;i++){
+      const x=-6+i*3;
+      addBox(environmentRoot,{x:1.2,y:.18+i*.08,z:1.2},{x:x,y:(.18+i*.08)/2,z:i%2?3:-3},i%2?0x7c8b8f:0x5d6d72,.7);
+    }
+  }
+
+  return def;
+}
+
+function renderEnvironmentCards() {
+  const grid=document.getElementById("environment-grid");
+  const search=document.getElementById("environment-search");
+  const category=document.getElementById("environment-category-filter");
+  const difficulty=document.getElementById("environment-difficulty-filter");
+  if(!grid)return;
+  const current=localStorage.getItem("blueprint_selected_environment")||"flat-concrete";
+  const query=(search?.value||"").trim().toLowerCase();
+  grid.replaceChildren();
+  for(const def of environmentDefinitions){
+    if(query && !`${def.name} ${def.description} ${def.category} ${def.capabilities.join(" ")}`.toLowerCase().includes(query))continue;
+    if(category?.value!=="all" && def.category!==category.value)continue;
+    if(difficulty?.value!=="all" && def.difficulty!==difficulty.value)continue;
+    const card=document.createElement("article");
+    card.className=`environment-card${def.id===current?" selected":""}`;
+    card.tabIndex=0;
+    card.innerHTML=`
+      <img src="./images/environments/${def.id}.webp" alt="${def.name} preview">
+      <div class="environment-card-body">
+        <h3>${def.name}</h3>
+        <p>${def.description}</p>
+        <div class="environment-card-meta"><span class="tag">${def.category}</span><span class="difficulty">${def.difficulty}</span></div>
+      </div>`;
+    const choose=()=>selectEnvironment(def.id,true);
+    card.addEventListener("click",choose);
+    card.addEventListener("keydown",event=>{if(event.key==="Enter"||event.key===" ")choose();});
+    grid.append(card);
+  }
+}
+
+function renderEnvironmentDetails(def) {
+  document.getElementById("selected-environment-name").textContent=def.name;
+  document.getElementById("selected-environment-description").textContent=def.description;
+  const img=document.getElementById("selected-environment-image");
+  img.src=`./images/environments/${def.id}.webp`;
+  img.alt=`${def.name} 3D testing environment preview`;
+  document.getElementById("environment-selection-status").textContent=def.name.toUpperCase();
+  const tags=document.getElementById("selected-environment-tags");
+  tags.replaceChildren(...[def.category,def.difficulty,...def.capabilities].map(text=>{const tag=document.createElement("span");tag.className="tag";tag.textContent=text;return tag;}));
+  const config=document.getElementById("environment-config");
+  config.replaceChildren();
+  const cfg=getConfig(def.id);
+  for(const item of def.config){
+    const label=document.createElement("label");
+    label.textContent=item.label;
+    const input=document.createElement("input");
+    input.type=item.type==="range"?"range":"number";
+    input.min=item.min;input.max=item.max;input.step=item.step;input.value=cfg[item.key];
+    input.addEventListener("input",()=>{const stored=envConfig.get(def.id)||{};stored[item.key]=Number(input.value);envConfig.set(def.id,stored);buildEnvironment(def.id);});
+    label.append(input);config.append(label);
+  }
+}
+
+function syncTerrainControls(def) {
+  const terrain=document.getElementById("terrain-type");
+  if(terrain)terrain.value=def.terrain;
+  const slope=document.getElementById("slope-degrees");
+  const obstacleHeight=document.getElementById("obstacle-height");
+  const obstacleWidth=document.getElementById("obstacle-width");
+  if(def.id==="inclined-ramp"&&slope)slope.value=String(getConfig(def.id).slopeAngle);
+  if(def.id==="industrial-test-track"&&slope)slope.value=String(getConfig(def.id).rampAngle);
+  if(def.config.some(item=>item.key==="obstacleHeight")&&obstacleHeight)obstacleHeight.value=String(getConfig(def.id).obstacleHeight);
+  if(obstacleWidth)obstacleWidth.value="0";
+}
+
+function selectEnvironment(id, rebuild=true) {
+  const def=environmentDefinitions.find(item=>item.id===id)||environmentDefinitions[0];
+  localStorage.setItem("blueprint_selected_environment",def.id);
+  renderEnvironmentDetails(def);
+  renderEnvironmentCards();
+  syncTerrainControls(def);
+  if(rebuild)buildEnvironment(def.id);
+}
+
 async function loadCatalog() {
   try {
     const response = await fetch(`${location.origin}/api/components`);
@@ -282,5 +537,24 @@ window.BlueprintTestingViewport = {
   refresh: renderAssembly,
   fit: fitAssembly
 };
+
+document.getElementById("environment-search")?.addEventListener("input",renderEnvironmentCards);
+document.getElementById("environment-category-filter")?.addEventListener("change",renderEnvironmentCards);
+document.getElementById("environment-difficulty-filter")?.addEventListener("change",renderEnvironmentCards);
+document.getElementById("load-selected-environment")?.addEventListener("click",()=>{
+  const id=localStorage.getItem("blueprint_selected_environment")||"flat-concrete";
+  selectEnvironment(id,true);
+  fitAssembly();
+});
+
+window.BlueprintEnvironmentLibrary={
+  environments:environmentDefinitions,
+  select:selectEnvironment,
+  build:buildEnvironment
+};
+
+const initialEnvironment=localStorage.getItem("blueprint_selected_environment")||"flat-concrete";
+selectEnvironment(initialEnvironment,true);
+renderEnvironmentCards();
 
 loadCatalog();

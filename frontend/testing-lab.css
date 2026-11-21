@@ -59,6 +59,28 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 #api-status { color: var(--orange); font-size: 12px; }
 .lab-layout { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; max-width: 1440px; margin: auto; padding: 20px; }
 .intro, .robot-panel, .terrain-panel, .report-panel { grid-column: 1 / -1; }
+.environment-library { grid-column: 1 / -1; }
+.environment-toolbar { display: grid; grid-template-columns: minmax(180px, 2fr) repeat(2, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.environment-browser { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 14px; }
+.environment-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; min-width: 0; }
+.environment-card { min-width: 0; overflow: hidden; background: #0d1727; border: 1px solid #26364e; border-radius: 10px; cursor: pointer; transition: border-color .16s, transform .16s; }
+.environment-card:hover { border-color: #4c9aff; transform: translateY(-1px); }
+.environment-card.selected { border-color: var(--cyan); box-shadow: 0 0 0 1px rgba(69,214,232,.35); }
+.environment-card img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; background: #1a2635; }
+.environment-card-body { padding: 11px; }
+.environment-card h3 { margin: 0 0 5px; font-size: 15px; }
+.environment-card p { min-height: 38px; margin: 0 0 9px; color: var(--muted); font-size: 11px; line-height: 1.45; }
+.environment-card-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.difficulty { color: var(--orange); font-size: 10px; font-weight: 800; }
+.tag-list { display: flex; flex-wrap: wrap; gap: 5px; }
+.tag { padding: 4px 7px; color: #b8c9df; background: #18283c; border-radius: 999px; font-size: 10px; }
+.environment-details { align-self: start; padding: 12px; background: #0a1220; border: 1px solid var(--border); border-radius: 10px; }
+.environment-details img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; margin-bottom: 10px; border-radius: 7px; }
+.environment-details h3 { margin: 4px 0 7px; }
+.environment-details > p:not(.eyebrow) { color: var(--muted); font-size: 12px; line-height: 1.5; }
+.environment-config { display: grid; gap: 8px; margin: 12px 0; }
+.environment-config label { color: var(--muted); }
+.environment-config input { width: 100%; }
 .intro { padding: 6px 4px 2px; }
 .intro h1 { margin: 5px 0 8px; font-size: clamp(26px, 4vw, 36px); }
 .intro p:last-child { max-width: 900px; color: var(--muted); line-height: 1.6; }
@@ -144,10 +166,15 @@ pre { max-height: 420px; overflow: auto; padding: 12px; color: #c9d8ed; backgrou
   .intro, .robot-panel, .terrain-panel, .report-panel { grid-column: auto; }
   .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .assembly-viewport-shell { height: 360px; }
+  .environment-browser { grid-template-columns: minmax(0, 1fr); }
+  .environment-details { max-width: none; }
+  .environment-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 520px) {
   .lab-header { padding: 12px; }
   .form-grid { grid-template-columns: minmax(0, 1fr); }
+  .environment-toolbar { grid-template-columns: minmax(0, 1fr); }
+  .environment-grid { grid-template-columns: minmax(0, 1fr); }
   .section-heading { align-items: flex-start; }
   .panel { padding: 13px; }
   .assembly-viewport-shell { height: 300px; }

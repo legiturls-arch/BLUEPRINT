@@ -108,6 +108,30 @@ def test_frontend_images_have_accessible_alt_text():
     assert not parser.images_without_alt
 
 
+def test_testing_environment_preview_assets_are_complete():
+    frontend = Path(__file__).resolve().parents[1] / "frontend"
+    environment_names = [
+        "flat-concrete",
+        "rocky-terrain",
+        "desert-terrain",
+        "inclined-ramp",
+        "obstacle-course",
+        "uneven-terrain",
+        "gravel-road",
+        "mud-terrain",
+        "sand-obstacle-course",
+        "industrial-test-track",
+        "stairs-steps",
+        "custom-arena",
+    ]
+    preview_dir = frontend / "images" / "environments"
+    assert preview_dir.is_dir()
+    for environment_name in environment_names:
+        preview = preview_dir / f"{environment_name}.webp"
+        assert preview.is_file()
+        assert preview.stat().st_size > 1000
+
+
 def test_assembly_validation_passes_complete_mobile_robot(client):
     response = client.post("/api/assembly/validate", json={
         "component_ids": [
