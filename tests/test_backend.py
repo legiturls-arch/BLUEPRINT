@@ -54,6 +54,34 @@ def test_health_route(client):
     assert response.json() == {"status": "ok"}
 
 
+def test_assembly_validation_passes_complete_mobile_robot(client):
+    response = client.post("/api/assembly/validate", json={
+        "component_ids": [
+            "chassis_basic",
+            "motor_geared",
+            "wheel_basic",
+            "battery_basic",
+            "controller_basic",
+        ]
+    })
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "PASS"
+    assert body["valid"] is True
+    assert body["counts"]["motor"] == 1
+
+
+def test_assembly_validation_reports_missing_required_parts(client):
+    response = client.post("/api/assembly/validate", json={
+        "component_ids": ["battery_basic", "sensor_basic"]
+    })
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "FAIL"
+    assert body["valid"] is False
+    assert any("chassis" in error for error in body["errors"])
+
+
 # ============================================================
 # 4. COMPONENT LIBRARY TEST
 # ============================================================

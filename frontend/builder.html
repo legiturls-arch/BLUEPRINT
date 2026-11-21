@@ -56,6 +56,24 @@
       <span class="viewport-help">Orbit drag · Pan right-drag · Scroll to zoom</span>
     </div>
 
+    <section id="builder-workflow" class="panel builder-workflow" aria-label="Robot design workflow">
+      <label>Start from template
+        <select id="robot-template" aria-label="Robot template">
+          <option value="">Custom / empty robot</option>
+          <option value="two-wheel">2-Wheel Robot</option>
+          <option value="four-wheel">4-Wheel Rover</option>
+          <option value="six-wheel">6-Wheel Rover</option>
+          <option value="line-follower">Line Following Robot</option>
+        </select>
+      </label>
+      <input id="design-name" type="text" maxlength="80" value="Untitled robot" aria-label="Design name">
+      <button id="apply-template" type="button">Create template</button>
+      <button id="save-design" type="button">Save design</button>
+      <button id="load-design" type="button">Load design</button>
+      <button id="validate-assembly" type="button">Validate assembly</button>
+      <span id="validation-status" class="validation-status" role="status" aria-live="polite">Not validated</span>
+    </section>
+
     <aside id="component-library" class="panel library-panel workspace-panel"
       aria-labelledby="library-heading" tabindex="-1">
       <div class="workspace-panel-heading">

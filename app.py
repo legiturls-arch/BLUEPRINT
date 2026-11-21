@@ -389,6 +389,11 @@ class EnduranceTestRequest(TestRequestModel):
     speed_ms: float = Field(default=0, ge=0, le=100, allow_inf_nan=False)
 
 
+class AssemblyValidationRequest(BaseModel):
+    component_ids: list[str] = Field(default_factory=list, max_length=100)
+    reject_unknown: bool = True
+
+
 # ------------------------------------------
 # 6. Robot Testing Lab API
 # ------------------------------------------
@@ -396,6 +401,65 @@ class EnduranceTestRequest(TestRequestModel):
 @app.get("/api/tests/campaigns")
 def list_test_campaigns():
     return {"campaigns": test_campaigns()}
+
+
+@app.post("/api/assembly/validate")
+def validate_assembly(request: AssemblyValidationRequest):
+    catalogue = {component["id"]: component for component in get_components()}
+    ids = request.component_ids
+    unknown = [component_id for component_id in ids if component_id not in catalogue]
+    if unknown and request.reject_unknown:
+        return {
+            "status": "FAIL",
+            "valid": False,
+            "errors": [
+                f"Unknown component ID: {component_id}"
+                for component_id in unknown
+            ],
+            "warnings": [],
+            "summary": "Remove unknown components before validation.",
+        }
+
+    installed = [catalogue[component_id] for component_id in ids if component_id in catalogue]
+    counts = {
+        "chassis": sum(component["category"] == "structure" and "chassis" in component["id"] for component in installed),
+        "motor": sum(component["category"] == "actuator" for component in installed),
+        "wheel": sum(component["category"] == "mechanical" and "wheel" in component["id"] for component in installed),
+        "battery": sum(component["category"] == "power" for component in installed),
+        "controller": sum(component["category"] == "electrical" and "controller" in component["id"] for component in installed),
+        "sensor": sum(component["category"] == "sensor" for component in installed),
+    }
+
+    errors = []
+    warnings = []
+    if counts["chassis"] == 0:
+        errors.append("A chassis or structural frame is required.")
+    if counts["motor"] == 0:
+        errors.append("At least one motor is required for a mobile robot.")
+    if counts["wheel"] == 0:
+        errors.append("At least one wheel is required for a wheeled robot.")
+    if counts["battery"] == 0:
+        warnings.append("No power source is installed. Electrical operation cannot be evaluated.")
+    if counts["motor"] > counts["wheel"]:
+        warnings.append("There are more motors than wheels. Verify that each motor drives a wheel.")
+    if counts["wheel"] > counts["motor"]:
+        warnings.append("There are wheels without an identified drivetrain motor.")
+    if counts["sensor"] and counts["controller"] == 0:
+        warnings.append("Sensors are installed without an identified controller.")
+    if counts["motor"] and counts["battery"] == 0:
+        warnings.append("Motors are installed without a battery connection.")
+
+    status = "FAIL" if errors or unknown else ("WARNING" if warnings else "PASS")
+    return {
+        "status": status,
+        "valid": not errors and not unknown,
+        "errors": errors,
+        "warnings": warnings,
+        "counts": counts,
+        "summary": "Assembly is ready for testing." if status == "PASS"
+            else "Assembly requires attention before testing." if status == "WARNING"
+            else "Assembly validation found blocking errors.",
+    }
 
 
 @app.post("/api/tests/terrain")

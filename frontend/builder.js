@@ -2489,6 +2489,178 @@ function saveRobotConfigurationForTesting() {
   return true;
 }
 
+const ROBOT_TEMPLATES = {
+  "two-wheel": [
+    ["chassis_basic", { x: 0, y: 0, z: 0 }],
+    ["motor_geared", { x: -0.75, y: 0.45, z: 0 }],
+    ["motor_geared", { x: 0.75, y: 0.45, z: 0 }],
+    ["wheel_basic", { x: -1.05, y: 0, z: 0.5 }],
+    ["wheel_basic", { x: 1.05, y: 0, z: 0.5 }],
+    ["battery_basic", { x: 0, y: 0.35, z: 0.7 }],
+  ],
+  "four-wheel": [
+    ["chassis_basic", { x: 0, y: 0, z: 0 }],
+    ["motor_geared", { x: -0.75, y: 0.45, z: -0.7 }],
+    ["motor_geared", { x: 0.75, y: 0.45, z: -0.7 }],
+    ["wheel_basic", { x: -1.05, y: 0, z: -0.7 }],
+    ["wheel_basic", { x: 1.05, y: 0, z: -0.7 }],
+    ["wheel_basic", { x: -1.05, y: 0, z: 0.7 }],
+    ["wheel_basic", { x: 1.05, y: 0, z: 0.7 }],
+    ["battery_basic", { x: 0, y: 0.35, z: 0.7 }],
+  ],
+  "six-wheel": [
+    ["chassis_basic", { x: 0, y: 0, z: 0 }],
+    ["motor_geared", { x: -0.75, y: 0.45, z: -1.05 }],
+    ["motor_geared", { x: 0.75, y: 0.45, z: -1.05 }],
+    ["wheel_basic", { x: -1.05, y: 0, z: -1.05 }],
+    ["wheel_basic", { x: 1.05, y: 0, z: -1.05 }],
+    ["wheel_basic", { x: -1.05, y: 0, z: 0 }],
+    ["wheel_basic", { x: 1.05, y: 0, z: 0 }],
+    ["wheel_basic", { x: -1.05, y: 0, z: 1.05 }],
+    ["wheel_basic", { x: 1.05, y: 0, z: 1.05 }],
+    ["battery_basic", { x: 0, y: 0.35, z: 0.7 }],
+  ],
+  "line-follower": [
+    ["chassis_basic", { x: 0, y: 0, z: 0 }],
+    ["motor_basic", { x: -0.75, y: 0.45, z: 0 }],
+    ["motor_basic", { x: 0.75, y: 0.45, z: 0 }],
+    ["wheel_basic", { x: -1.05, y: 0, z: 0.5 }],
+    ["wheel_basic", { x: 1.05, y: 0, z: 0.5 }],
+    ["battery_basic", { x: 0, y: 0.35, z: 0.7 }],
+    ["sensor_light", { x: -0.25, y: 0.35, z: -0.9 }],
+    ["sensor_light", { x: 0.25, y: 0.35, z: -0.9 }],
+  ],
+};
+
+function serializeDesign() {
+  return {
+    version: 1,
+    name: ($("design-name")?.value || "Untitled robot").trim(),
+    savedAt: new Date().toISOString(),
+    parts: parts.map(part => ({
+      componentId: part.componentId,
+      position: { x: part.group.position.x, y: part.group.position.y, z: part.group.position.z },
+      rotation: { x: part.group.rotation.x, y: part.group.rotation.y, z: part.group.rotation.z },
+      scale: { x: part.group.scale.x, y: part.group.scale.y, z: part.group.scale.z },
+      powered: part.powered,
+      rpm: part.rpm,
+      ledColor: part.ledColor,
+      ledBrightness: part.ledBrightness,
+      ledPowered: part.ledPowered,
+      sensorEnabled: part.sensorEnabled,
+      sensorRange: part.sensorRange,
+      wheelAngle: part.wheelAngle,
+      wheelSteering: part.wheelSteering,
+      servoAngle: part.servoAngle,
+    })),
+  };
+}
+
+function applyTemplate(templateId) {
+  if (!templateId) {
+    resetScene();
+    setText("validation-status", "Not validated");
+    return;
+  }
+  const template = ROBOT_TEMPLATES[templateId];
+  if (!template) return;
+  resetScene();
+  for (const [componentId, position] of template) {
+    add(componentId, position, false);
+  }
+  update();
+  setText("validation-status", "Template added");
+  const status = $("validation-status");
+  if (status) status.dataset.status = "";
+}
+
+function saveLocalDesign() {
+  if (!parts.length) {
+    showError("Add at least one component before saving a design.");
+    return;
+  }
+  const design = serializeDesign();
+  try {
+    localStorage.setItem("blueprint_saved_design", JSON.stringify(design));
+    setText("validation-status", "Design saved");
+  } catch (error) {
+    showError(`Could not save the design: ${error.message}`);
+  }
+}
+
+function loadLocalDesign() {
+  let design;
+  try {
+    design = JSON.parse(localStorage.getItem("blueprint_saved_design") || "null");
+  } catch (error) {
+    showError(`Could not read the saved design: ${error.message}`);
+    return;
+  }
+  if (!design || !Array.isArray(design.parts)) {
+    showError("No saved BLUEPRINT design was found.");
+    return;
+  }
+  resetScene();
+  for (const saved of design.parts) {
+    if (!catalog.some(component => component.id === saved.componentId)) continue;
+    add(saved.componentId, saved.position, false);
+    const part = selected;
+    if (!part) continue;
+    part.group.rotation.set(saved.rotation?.x || 0, saved.rotation?.y || 0, saved.rotation?.z || 0);
+    part.group.scale.set(saved.scale?.x || 1, saved.scale?.y || 1, saved.scale?.z || 1);
+    part.powered = saved.powered;
+    part.rpm = saved.rpm;
+    part.ledColor = saved.ledColor;
+    part.ledBrightness = saved.ledBrightness;
+    part.ledPowered = saved.ledPowered;
+    part.sensorEnabled = saved.sensorEnabled;
+    part.sensorRange = saved.sensorRange;
+    part.wheelAngle = saved.wheelAngle;
+    part.wheelSteering = saved.wheelSteering;
+    part.servoAngle = saved.servoAngle;
+  }
+  if ($("design-name")) $("design-name").value = design.name || "Untitled robot";
+  update();
+  setText("validation-status", "Design loaded");
+  const status = $("validation-status");
+  if (status) status.dataset.status = "";
+}
+
+async function validateAssembly() {
+  const status = $("validation-status");
+  if (status) {
+    status.textContent = "Validating...";
+    status.dataset.status = "";
+  }
+  try {
+    const response = await fetch(`${API}/api/assembly/validate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        component_ids: parts.map(part => part.componentId),
+      }),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.detail || `Validation failed (HTTP ${response.status})`);
+    if (status) {
+      status.textContent = result.status;
+      status.dataset.status = result.status;
+    }
+    const messages = [...result.errors, ...result.warnings];
+    if (result.valid && !messages.length) {
+      setText("result-message", result.summary);
+    } else {
+      showError(`${result.summary} ${messages.join(" ")}`);
+    }
+  } catch (error) {
+    if (status) {
+      status.textContent = "ERROR";
+      status.dataset.status = "FAIL";
+    }
+    showError(`Assembly validation unavailable: ${error.message}`);
+  }
+}
+
 // --------------------------------------------------
 // COMPONENT LIBRARY AND DRAG & DROP
 // --------------------------------------------------
@@ -3602,6 +3774,10 @@ window.addEventListener("blur", () => {
 on("remove-selected", "click", removeSelected);
 on("duplicate-selected", "click", duplicateSelected);
 on("simulate", "click", simulate);
+on("apply-template", "click", () => applyTemplate($("robot-template")?.value));
+on("save-design", "click", saveLocalDesign);
+on("load-design", "click", loadLocalDesign);
+on("validate-assembly", "click", validateAssembly);
 on("reset", "click", resetScene);
 on("reset-movement", "click", resetMovement);
 on("reset-view", "click", () => {
@@ -3666,7 +3842,9 @@ const EXPECTED_IDS = [
   "move-tool", "rotate-tool", "scale-tool",
   "sim-status", "sim-state", "sim-time", "sim-detail",
   "sensor-list", "sensor-empty", "sensor-updated",
-  "component-output-body", "warning-list", "warning-count", "warnings-empty"
+  "component-output-body", "warning-list", "warning-count", "warnings-empty",
+  "robot-template", "design-name", "apply-template", "save-design",
+  "load-design", "validate-assembly", "validation-status"
 ];
 
 const missingIds = EXPECTED_IDS.filter(id => !$(id));

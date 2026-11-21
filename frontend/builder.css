@@ -1368,6 +1368,59 @@ body.builder-workspace {
   font-size: 10px;
 }
 
+.builder-workflow {
+  position: absolute;
+  z-index: 18;
+  top: 13px;
+  left: 50%;
+  display: flex;
+  align-items: end;
+  gap: 7px;
+  max-width: calc(100% - 560px);
+  padding: 8px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(135, 166, 207, 0.19);
+  border-radius: 10px;
+  background: rgba(10, 16, 27, 0.88);
+  backdrop-filter: blur(16px);
+}
+.builder-workflow label {
+  min-width: 150px;
+  color: var(--muted);
+  font-size: 9px;
+}
+.builder-workflow select,
+.builder-workflow input {
+  width: 100%;
+  min-height: 32px;
+  margin-top: 3px;
+  color: var(--text);
+  background: #0a1220;
+  border: 1px solid #334762;
+  border-radius: 7px;
+}
+.builder-workflow input {
+  width: 125px;
+  padding: 6px 8px;
+}
+.builder-workflow button {
+  min-height: 32px;
+  padding: 6px 8px;
+  white-space: nowrap;
+  font-size: 10px;
+}
+.validation-status {
+  min-width: 82px;
+  padding: 7px;
+  color: var(--orange);
+  text-align: center;
+  font-size: 9px;
+  font-weight: 800;
+}
+.validation-status[data-status="PASS"] { color: var(--green); }
+.validation-status[data-status="FAIL"] { color: var(--red); }
+.validation-status[data-status="WARNING"] { color: var(--orange); }
+
 .builder-workspace .workspace-panel {
   position: absolute;
   z-index: 4;
