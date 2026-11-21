@@ -94,6 +94,13 @@ function librarySectionFor(component) {
 // Component groups the summary, simulation and driving code all share.
 const MOTOR_IDS = ["motor_basic", "motor_geared"];
 const WHEEL_IDS = ["wheel_basic", "space_rover_wheel"];
+const EMBEDDED_COMPONENT_IDS = new Set([
+  "controller_esp32",
+  "sensor_ir",
+  "sensor_ir_receiver",
+  "motor_driver_l298n",
+  "sensor_gps_neo6m"
+]);
 const isMotorPart = part => MOTOR_IDS.includes(part.componentId);
 const isWheelPart = part => WHEEL_IDS.includes(part.componentId);
 
@@ -280,7 +287,7 @@ function init() {
   camera = new THREE.PerspectiveCamera(
     48,
     Math.max(host.clientWidth, 1) / Math.max(host.clientHeight, 1),
-    0.1,
+    0.005,
     1000
   );
 
@@ -315,7 +322,7 @@ function init() {
   controls.enableDamping = true;
   controls.target.set(0, 0.5, 0);
   controls.maxPolarAngle = Math.PI * 0.48;
-  controls.minDistance = 2;
+  controls.minDistance = 0.01;
   controls.maxDistance = 35;
   controls.saveState();
 
@@ -797,6 +804,38 @@ function geometry(part) {
     return mesh;
   };
 
+  const label = (text, x, y, z, width, height, color = "#dbeafe") => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 256;
+    canvas.height = 64;
+    const context = canvas.getContext("2d");
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = color;
+    context.font = "bold 34px sans-serif";
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillText(text, canvas.width / 2, canvas.height / 2, 248);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    const decal = new THREE.Mesh(
+      new THREE.PlaneGeometry(width, height),
+      new THREE.MeshBasicMaterial({
+        map: texture,
+        transparent: true,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      })
+    );
+    decal.rotation.x = -Math.PI / 2;
+    decal.position.set(x, y, z);
+    group.add(decal);
+    return decal;
+  };
+
+  const mountingHole = (x, y, z, radius = 0.0012) =>
+    C(radius, 0.0018, black, x, y, z, "y", 16);
+
   const frame = (w, h, d, t, material, y) => {
     B(w, t, d, material, 0, y, 0);
     B(t, h, d, material, -w / 2, y + h / 2, 0);
@@ -1023,6 +1062,159 @@ function geometry(part) {
         C(0.018, 0.05, gold, x, 0.52, 0.16);
       }
       break;
+
+    // Embedded boards use metre-scale dimensions so their proportions match
+    // real modules and remain comparable with the rest of the assembly.
+    case "controller_esp32": {
+      const pcbBlack = mat(0x142232, 0.15, 0.75);
+      const boardY = 0.48;
+      const topY = boardY + 0.001;
+      B(0.055, 0.0016, 0.028, pcbBlack, 0, boardY, 0);
+
+      // ESP-WROOM shield, PCB antenna trace, USB connector, and USB-UART parts.
+      B(0.024, 0.0012, 0.017, silver, 0.002, boardY + 0.002, -0.001);
+      label("ESP32", 0.002, boardY + 0.0027, -0.001, 0.018, 0.004);
+      B(0.011, 0.0004, 0.019, mat(0x34495e, 0.25, 0.5), -0.019, topY, 0);
+      for (const z of [-0.007, -0.003, 0.001, 0.005]) {
+        B(0.008, 0.0003, 0.00055, gold, -0.019, topY + 0.0003, z);
+      }
+      B(0.008, 0.005, 0.009, silver, 0.028, boardY + 0.003, 0);
+      B(0.0012, 0.0025, 0.006, dark, 0.032, boardY + 0.003, 0);
+      B(0.005, 0.001, 0.005, black, 0.012, topY, 0.006);
+      B(0.0028, 0.0012, 0.0028, dark, 0.019, topY + 0.001, -0.005);
+      B(0.0028, 0.0012, 0.0028, dark, 0.019, topY + 0.001, 0.005);
+      B(0.0018, 0.0006, 0.0018, silver, 0.019, topY + 0.0018, -0.005);
+      B(0.0018, 0.0006, 0.0018, silver, 0.019, topY + 0.0018, 0.005);
+      label("BOOT", 0.018, topY + 0.0002, -0.009, 0.009, 0.002, "#f8fafc");
+      label("EN", 0.018, topY + 0.0002, 0.009, 0.006, 0.002, "#f8fafc");
+
+      // Two 19-pin rows at the common 2.54 mm pitch.
+      for (let i = 0; i < 19; i++) {
+        const px = -0.02286 + i * 0.00254;
+        C(0.00055, 0.008, gold, px, boardY - 0.001, -0.012, "y", 8);
+        C(0.00055, 0.008, gold, px, boardY - 0.001, 0.012, "y", 8);
+      }
+      for (const x of [-0.024, 0.024]) {
+        for (const z of [-0.009, 0.009]) mountingHole(x, topY, z);
+      }
+      label("GND 3V3 TX RX", 0, topY + 0.0002, 0.0085, 0.024, 0.002, "#cbd5e1");
+      break;
+    }
+
+    case "sensor_ir": {
+      const pcbMat = mat(0x176b52, 0.08, 0.7);
+      const boardY = 0.48;
+      const topY = boardY + 0.001;
+      B(0.032, 0.0016, 0.014, pcbMat, 0, boardY, 0);
+
+      // 940 nm emitter and reflective photodetector face the same direction.
+      C(0.0018, 0.005, mat(0x7c2d12, 0.1, 0.35), -0.004, boardY + 0.0035, 0.006, "z", 16);
+      S(0.0018, mat(0x7c2d12, 0.1, 0.3), -0.004, boardY + 0.0035, 0.0085);
+      C(0.0018, 0.005, black, 0.004, boardY + 0.0035, 0.006, "z", 16);
+      S(0.0018, black, 0.004, boardY + 0.0035, 0.0085);
+
+      // LM393 comparator and blue sensitivity trimmer.
+      B(0.004, 0.001, 0.004, black, -0.003, topY + 0.0005, -0.001);
+      B(0.0065, 0.004, 0.0065, mat(0x0284c7, 0.25, 0.4), 0.009, topY + 0.002, -0.001);
+      C(0.0012, 0.0005, silver, 0.009, topY + 0.0043, -0.001, "y", 12);
+      label("LM393", -0.003, topY + 0.0011, -0.004, 0.008, 0.002, "#e2e8f0");
+
+      for (const x of [-0.00254, 0, 0.00254]) {
+        C(0.00055, 0.008, gold, x, boardY - 0.001, -0.0045, "y", 8);
+      }
+      for (const x of [-0.013, 0.013]) mountingHole(x, topY, -0.0045, 0.001);
+      label("D0 VCC GND", 0, topY + 0.0002, -0.002, 0.018, 0.0018, "#dcfce7");
+      break;
+    }
+
+    case "sensor_ir_receiver": {
+      const pcbPurple = mat(0x4c1d95, 0.12, 0.65);
+      const boardY = 0.48;
+      const topY = boardY + 0.001;
+      B(0.015, 0.0015, 0.013, pcbPurple, 0, boardY, 0);
+
+      // Compact black demodulator package with its optical window facing forward.
+      B(0.006, 0.0045, 0.005, mat(0x101116, 0.05, 0.3), 0, topY + 0.0023, 0.003);
+      S(0.0018, mat(0x050608, 0.05, 0.2), 0, topY + 0.0023, 0.0056);
+      B(0.0015, 0.0008, 0.0015, mat(0xef4444), -0.0045, topY + 0.0004, -0.003);
+      label("38 kHz", 0, topY + 0.0002, -0.0047, 0.009, 0.002, "#f5d0fe");
+      label("VCC GND OUT", 0, topY + 0.0002, 0.0052, 0.012, 0.0018, "#f5d0fe");
+
+      for (const x of [-0.00254, 0, 0.00254]) {
+        C(0.00055, 0.008, gold, x, boardY - 0.001, -0.003, "y", 8);
+      }
+      break;
+    }
+
+    case "motor_driver_l298n": {
+      const pcbRed = mat(0xb91c2c, 0.08, 0.68);
+      const terminalBlue = mat(0x1769aa, 0.12, 0.48);
+      const boardY = 0.48;
+      const topY = boardY + 0.001;
+      B(0.043, 0.0018, 0.043, pcbRed, 0, boardY, 0);
+
+      // L298N package and aluminium finned heatsink.
+      B(0.015, 0.003, 0.010, black, 0, topY + 0.0015, -0.010);
+      B(0.018, 0.002, 0.014, silver, 0, topY + 0.002, 0.002);
+      for (let i = 0; i < 5; i++) {
+        B(0.018, 0.012, 0.0008, silver, 0, topY + 0.009, -0.004 + i * 0.003);
+      }
+      label("L298N", 0, topY + 0.0012, -0.010, 0.009, 0.002, "#e2e8f0");
+
+      // Motor output terminal blocks with visible metal screw heads.
+      for (const x of [-0.012, 0.010]) {
+        B(0.014, 0.006, 0.007, terminalBlue, x, topY + 0.003, -0.018);
+        for (const dx of [-0.0032, 0.0032]) {
+          C(0.0013, 0.0007, silver, x + dx, topY + 0.0065, -0.018, "y", 12);
+        }
+      }
+      B(0.007, 0.006, 0.019, terminalBlue, 0.017, topY + 0.003, 0.002);
+      for (const z of [-0.005, 0, 0.005]) {
+        C(0.0013, 0.0007, silver, 0.017, topY + 0.0065, z, "y", 12);
+      }
+
+      // ENA, IN1-IN4, ENB control header and labels.
+      const headerNames = ["ENA", "IN1", "IN2", "IN3", "IN4", "ENB"];
+      for (let i = 0; i < headerNames.length; i++) {
+        const x = (i - 2.5) * 0.00254;
+        C(0.00055, 0.008, gold, x, boardY - 0.001, 0.017, "y", 8);
+        label(headerNames[i], x, topY + 0.0002, 0.012, 0.0024, 0.0012, "#fee2e2");
+      }
+      label("MOTOR A   MOTOR B", 0, topY + 0.0002, -0.0125, 0.025, 0.0018, "#fee2e2");
+      label("12V GND 5V", 0.017, topY + 0.0002, 0.014, 0.014, 0.0016, "#fee2e2");
+
+      // Filter capacitors and four corner mounting holes.
+      C(0.0025, 0.008, dark, -0.015, topY + 0.004, 0.007, "y", 16);
+      C(0.0023, 0.0007, silver, -0.015, topY + 0.0083, 0.007, "y", 16);
+      C(0.0016, 0.005, mat(0x111827, 0.1, 0.4), 0.010, topY + 0.0025, -0.010, "y", 16);
+      for (const x of [-0.018, 0.018]) {
+        for (const z of [-0.018, 0.018]) mountingHole(x, topY, z, 0.0011);
+      }
+      break;
+    }
+
+    case "sensor_gps_neo6m": {
+      const pcbBlue = mat(0x1d4ed8, 0.12, 0.62);
+      const boardY = 0.48;
+      const topY = boardY + 0.001;
+      B(0.025, 0.0016, 0.035, pcbBlue, 0, boardY, 0);
+
+      // Ceramic patch antenna and GNSS receiver/shield on the breakout.
+      B(0.022, 0.003, 0.022, mat(0xd6c6a4, 0.05, 0.58), 0, topY + 0.0015, -0.004);
+      B(0.009, 0.0012, 0.006, silver, 0, topY + 0.0006, 0.012);
+      label("NEO-6M", 0, topY + 0.0013, 0.012, 0.008, 0.002, "#e2e8f0");
+      C(0.0035, 0.0015, silver, -0.008, topY + 0.001, 0.012, "y", 20);
+      C(0.0028, 0.0005, gold, -0.008, topY + 0.002, 0.012, "y", 20);
+
+      // Four-pin UART header at 2.54 mm pitch.
+      for (let i = 0; i < 4; i++) {
+        const x = (i - 1.5) * 0.00254;
+        C(0.00055, 0.008, gold, x, boardY - 0.001, 0.015, "y", 8);
+      }
+      label("VCC RX TX GND", 0, topY + 0.0002, 0.009, 0.018, 0.0018, "#dbeafe");
+      label("GPS", 0, topY + 0.0002, -0.019, 0.006, 0.0018, "#dbeafe");
+      break;
+    }
 
     // 16. Spacecraft solar panel
     case "space_solar_panel":
@@ -1793,6 +1985,7 @@ function add(id, position, trackHistory = true) {
 
   const historyBefore = trackHistory ? captureDesignState() : null;
   invalidateSimulation();
+  const isFirstPart = parts.length === 0;
 
   const component = spec(id);
 
@@ -1818,11 +2011,14 @@ function add(id, position, trackHistory = true) {
   part.group.position.set(pos.x, pos.y, pos.z);
   part.basePosition = { x: pos.x, y: pos.y, z: pos.z };
   part.isFrontWheel = isWheelPart(part) && pos.z < 0;
+  const hasPowerIndicator = !EMBEDDED_COMPONENT_IDS.has(id);
   if (
-    isMotorPart(part) ||
-    component.category === "actuator" ||
-    component.category === "power" ||
-    component.category === "sensor"
+    hasPowerIndicator && (
+      isMotorPart(part) ||
+      component.category === "actuator" ||
+      component.category === "power" ||
+      component.category === "sensor"
+    )
   ) {
     const indicatorMaterial = new THREE.MeshStandardMaterial({
       color: 0x45d6a0,
@@ -1842,6 +2038,18 @@ function add(id, position, trackHistory = true) {
 
   assemblyRoot.add(part.group);
   parts.push(part);
+
+  if (isFirstPart && EMBEDDED_COMPONENT_IDS.has(id)) {
+    const bounds = new THREE.Box3().setFromObject(part.group);
+    const center = bounds.getCenter(new THREE.Vector3());
+    const radius = bounds.getBoundingSphere(new THREE.Sphere()).radius;
+    const direction = camera.position.clone().sub(controls.target).normalize();
+    const distance = Math.max(radius * 2.7, 0.09);
+    controls.target.copy(center);
+    camera.position.copy(center.clone().add(direction.multiplyScalar(distance)));
+    controls.update();
+    controls.saveState();
+  }
 
   select(part.instanceId);
   update();
@@ -1909,6 +2117,7 @@ function renderSelectedDetails() {
   const name = $("selected-name");
   const category = $("selected-category");
   const specs = $("selected-specs");
+  const information = $("selected-information");
   if (!selected || !preview || !name || !category || !specs) return;
 
   const component = spec(selected.componentId);
@@ -1937,6 +2146,118 @@ function renderSelectedDetails() {
     const item = document.createElement("span");
     item.textContent = `${label} ${Number(value.toFixed(2))} ${unit}`;
     specs.append(item);
+  }
+
+  if (information) renderComponentInformation(information, component);
+}
+
+function renderComponentInformation(panel, component) {
+  const body = panel.querySelector(".component-information-body");
+  if (!body) return;
+  body.replaceChildren();
+
+  const hasInformation = [
+    component.description,
+    component.working_principle,
+    component.technical_specifications,
+    component.pin_configuration,
+    component.inputs,
+    component.outputs,
+    component.applications,
+    component.working_algorithm,
+    component.example_code,
+    component.specification_note
+  ].some(value => value && (typeof value !== "object" || Object.keys(value).length));
+  panel.hidden = !hasInformation;
+  if (!hasInformation) return;
+
+  const appendSection = (title, content) => {
+    const section = document.createElement("section");
+    section.className = "component-information-section";
+    const heading = document.createElement("h4");
+    heading.textContent = title;
+    section.append(heading, content);
+    body.append(section);
+    return section;
+  };
+
+  if (component.description) {
+    const description = document.createElement("p");
+    description.textContent = component.description;
+    appendSection("Description", description);
+  }
+
+  if (component.working_principle) {
+    const principle = document.createElement("p");
+    principle.textContent = component.working_principle;
+    appendSection("Working principle", principle);
+  }
+
+  if (component.dimensions_mm) {
+    const dimensions = component.dimensions_mm;
+    const size = document.createElement("p");
+    size.textContent =
+      `${dimensions.length} × ${dimensions.width} × ${dimensions.height} mm (approximate)`;
+    appendSection("Dimensions (L × W × H)", size);
+  }
+
+  if (component.technical_specifications) {
+    const list = document.createElement("dl");
+    for (const [label, value] of Object.entries(component.technical_specifications)) {
+      const term = document.createElement("dt");
+      const detail = document.createElement("dd");
+      term.textContent = label;
+      detail.textContent = String(value);
+      list.append(term, detail);
+    }
+    appendSection("Technical specifications", list);
+  }
+
+  if (asArray(component.pin_configuration).length) {
+    const list = document.createElement("ul");
+    list.className = "component-pin-list";
+    for (const pin of component.pin_configuration) {
+      const item = document.createElement("li");
+      const label = document.createElement("strong");
+      const detail = document.createElement("span");
+      label.textContent = pin.pin || "Pin";
+      detail.textContent = pin.function || "";
+      item.append(label, detail);
+      list.append(item);
+    }
+    appendSection("Pin configuration", list);
+  }
+
+  for (const [field, title] of [
+    ["inputs", "Inputs"],
+    ["outputs", "Outputs"],
+    ["applications", "Applications"],
+    ["working_algorithm", "Working algorithm"]
+  ]) {
+    const entries = asArray(component[field]);
+    if (!entries.length) continue;
+    const list = document.createElement(field === "working_algorithm" ? "ol" : "ul");
+    for (const entry of entries) {
+      const item = document.createElement("li");
+      item.textContent = String(entry);
+      list.append(item);
+    }
+    appendSection(title, list);
+  }
+
+  if (component.example_code) {
+    const pre = document.createElement("pre");
+    const code = document.createElement("code");
+    code.textContent = component.example_code;
+    pre.append(code);
+    appendSection("Example Arduino / ESP32 code", pre);
+  }
+
+  if (component.specification_note) {
+    const note = document.createElement("p");
+    note.className = "component-information-note";
+    note.textContent = component.specification_note;
+    appendSection("Notes", note);
   }
 }
 
@@ -2105,11 +2426,11 @@ function renderComponentControls() {
       valueText: Number(part.ledBrightness ?? 1).toFixed(2)
     });
   } else if (component.category === "sensor") {
-    addControlField(controls, "Show sensor detection cone", part, "sensor-enabled", {
-      checkbox: true,
-      checked: part.sensorEnabled !== false
-    });
     if (Number(component.range_m) > 0) {
+      addControlField(controls, "Show sensor detection cone", part, "sensor-enabled", {
+        checkbox: true,
+        checked: part.sensorEnabled !== false
+      });
       addControlField(controls, "Detection cone range", part, "sensor-range", {
         min: 0.25,
         max: component.range_m,

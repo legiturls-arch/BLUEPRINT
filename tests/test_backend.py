@@ -94,7 +94,7 @@ def test_components_route(client):
     components = response.json()["components"]
 
     # Keep the route assertion aligned with the current catalogue entries.
-    assert len(components) == 27
+    assert len(components) == 32
 
     # Find the basic motor without depending on its list position.
     motor = next(
@@ -114,6 +114,26 @@ def test_components_route(client):
     assert motor["tags"] == ["motor", "dc", "robotics"]
     assert motor["library"] == "engineering"
     assert motor["spec_status"] == "prototype"
+
+    embedded_names = {
+        "controller_esp32": "ESP32 Development Board",
+        "sensor_ir": "IR Obstacle Detection Sensor",
+        "sensor_ir_receiver": "IR Receiver Module",
+        "motor_driver_l298n": "L298N Motor Driver",
+        "sensor_gps_neo6m": "NEO-6M GPS Module",
+    }
+    embedded = {component["id"]: component for component in components}
+    for component_id, component_name in embedded_names.items():
+        component = embedded[component_id]
+        assert component["name"] == component_name
+        assert component["working_principle"]
+        assert component["technical_specifications"]
+        assert component["pin_configuration"]
+        assert component["inputs"]
+        assert component["outputs"]
+        assert component["applications"]
+        assert component["working_algorithm"]
+        assert component["example_code"]
 
 
 # ============================================================

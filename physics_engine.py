@@ -41,7 +41,6 @@ from typing import Optional
 
 GRAVITY: float = 9.81            # m/s²
 AIR_DENSITY: float = 1.225       # kg/m³ (ISA sea-level)
-
 MIN_MASS_KG: float = 0.01
 MAX_MASS_KG: float = 100.0
 
@@ -170,6 +169,7 @@ def simulate_robot(
     frontal_area_m2: float = 0.1,
     operating_velocity_ms: float = 0.0,
     gravity_m_s2: float = GRAVITY,
+    **kwargs,
 ) -> dict:
     """
     Estimate robot forces, wheel speed, acceleration, and motor operating state.
@@ -612,6 +612,7 @@ def simulate_robot_motion(
     drag_coefficient: float = 0.0,
     frontal_area_m2: float = 0.1,
     gravity_m_s2: float = GRAVITY,
+    **kwargs,
 ) -> dict:
     """
     Simulate time-based robot motion using Euler integration.
@@ -853,7 +854,7 @@ def simulate_robot_motion(
         "note":                                "Simulated wheel state — not a measured sensor reading.",
     }
 
-    return {
+    res = {
         "duration_s":              round(duration_s, 3),
         "time_step_s":             round(time_step_s, 3),
         "initial_velocity_ms":     round(initial_velocity_ms, 3),
@@ -901,6 +902,8 @@ def simulate_robot_motion(
             "Component outputs are simulated estimates, not measured sensor readings",
         ],
     }
+
+    return res
 
 
 # Retain v1 alias for flexibility
