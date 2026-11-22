@@ -472,6 +472,14 @@ def validate_assembly(request: AssemblyValidationRequest):
         "controller": sum(component["category"] == "electrical" and "controller" in component["id"] for component in installed),
         "sensor": sum(component["category"] == "sensor" for component in installed),
     }
+    # Modular WALL-E assemblies are validated through their module IDs.
+    counts["walle_head"] = sum(component["id"] == "walle_head" for component in installed)
+    counts["walle_body"] = sum(component["id"] == "walle_body" for component in installed)
+    counts["walle_tracks"] = sum(component["id"] == "walle_tracks" for component in installed)
+    counts["chassis"] += counts["walle_body"]
+    counts["motor"] += counts["walle_tracks"]
+    counts["wheel"] += counts["walle_tracks"]
+    counts["battery"] += counts["walle_body"]
 
     errors = []
     warnings = []

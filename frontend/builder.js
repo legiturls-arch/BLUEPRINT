@@ -93,7 +93,7 @@ function librarySectionFor(component) {
 
 // Component groups the summary, simulation and driving code all share.
 const MOTOR_IDS = ["motor_basic", "motor_geared"];
-const WHEEL_IDS = ["wheel_basic", "space_rover_wheel"];
+const WHEEL_IDS = ["wheel_basic", "space_rover_wheel", "walle_tracks"];
 const EMBEDDED_COMPONENT_IDS = new Set([
   "controller_esp32",
   "sensor_ir",
@@ -844,7 +844,296 @@ function geometry(part) {
     B(w, h, t, material, 0, y + h / 2, d / 2);
   };
 
+  const roundedExtrudedPanel = (width, height, depth, radius, finish, x, y, z, bevel = 0.035) => {
+    const shape = new THREE.Shape();
+    const left = -width / 2;
+    const right = width / 2;
+    const bottom = -height / 2;
+    const top = height / 2;
+    shape.moveTo(left + radius, bottom);
+    shape.lineTo(right - radius, bottom);
+    shape.quadraticCurveTo(right, bottom, right, bottom + radius);
+    shape.lineTo(right, top - radius);
+    shape.quadraticCurveTo(right, top, right - radius, top);
+    shape.lineTo(left + radius, top);
+    shape.quadraticCurveTo(left, top, left, top - radius);
+    shape.lineTo(left, bottom + radius);
+    shape.quadraticCurveTo(left, bottom, left + radius, bottom);
+    const geometry = new THREE.ExtrudeGeometry(shape, {
+      depth,
+      bevelEnabled: true,
+      bevelSegments: 3,
+      bevelSize: bevel,
+      bevelThickness: bevel,
+      curveSegments: 8,
+    });
+    geometry.center();
+    const mesh = new THREE.Mesh(geometry, finish);
+    mesh.position.set(x, y, z);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    group.add(mesh);
+    return mesh;
+  };
+
   switch (id) {
+    // Modular WALL-E-inspired assemblies. Each uses a real Three.js parent
+    // object and named joints so it can be selected or removed independently.
+    case "walle_head": {
+      const neck = new THREE.Group();
+      neck.name = "head-neck-pan-tilt";
+      group.add(neck);
+      C(0.19, 0.08, dark, 0, 0.08, 0, "y", 32, neck);
+      C(0.14, 0.38, silver, 0, 0.29, 0, "y", 32, neck);
+      C(0.23, 0.07, gold, 0, 0.49, 0, "y", 32, neck);
+      C(0.095, 0.06, dark, 0, 0.53, 0, "y", 24, neck);
+
+      const headPivot = new THREE.Group();
+      headPivot.name = "head-binocular-pivot";
+      headPivot.position.y = 0.62;
+      neck.add(headPivot);
+
+      const painted = mat(0xe3b43f, 0.62, 0.28);
+      const inset = mat(0xb88724, 0.72, 0.24);
+      const lens = mat(0x080b0d, 0.12, 0.22);
+      const glass = mat(0x80b9bd, 0.35, 0.12);
+
+      // Rounded, beveled industrial housing with a recessed upper rail.
+      const housing = roundedExtrudedPanel(1.22, 0.62, 0.54, 0.16, painted, 0, 0.08, 0, 0.045);
+      housing.parent?.remove(housing);
+      headPivot.add(housing);
+      housing.position.set(0, 0.08, 0);
+      B(1.02, 0.055, 0.58, inset, 0, 0.38, 0, headPivot);
+      B(0.98, 0.04, 0.035, silver, 0, 0.405, -0.24, headPivot);
+      B(0.58, 0.08, 0.035, dark, 0, -0.14, -0.26, headPivot);
+
+      for (const x of [-0.34, 0.34]) {
+        const eyePivot = new THREE.Group();
+        eyePivot.name = x < 0 ? "left-optical-eye" : "right-optical-eye";
+        eyePivot.position.set(x, 0.12, -0.31);
+        headPivot.add(eyePivot);
+
+        // Separate mounting bracket and telescoping eye barrel.
+        B(0.34, 0.10, 0.18, silver, 0, -0.24, 0.11, eyePivot);
+        C(0.205, 0.10, inset, 0, -0.20, 0.06, "y", 32, eyePivot);
+        C(0.19, 0.32, silver, 0, 0, 0.10, "z", 40, eyePivot);
+        C(0.145, 0.335, painted, 0, 0, 0.08, "z", 40, eyePivot);
+        C(0.126, 0.028, dark, 0, 0, -0.105, "z", 40, eyePivot);
+        C(0.102, 0.032, glass, 0, 0, -0.125, "z", 40, eyePivot);
+        C(0.076, 0.035, lens, 0, 0, -0.148, "z", 40, eyePivot);
+        C(0.018, 0.038, mat(0xd6f2f2, 0.15, 0.2), -0.032, 0.032, -0.166, "z", 20, eyePivot);
+        for (const bolt of [-0.13, 0.13]) {
+          C(0.018, 0.018, silver, bolt, 0, -0.105, "z", 16, eyePivot);
+        }
+      }
+
+      // Camera and distance sensor representation below the eye bridge.
+      C(0.055, 0.025, dark, 0, -0.22, -0.32, "z", 24, headPivot);
+      C(0.035, 0.028, lens, 0, -0.22, -0.34, "z", 24, headPivot);
+      C(0.025, 0.012, gold, -0.48, -0.12, -0.31, "z", 16, headPivot);
+      C(0.025, 0.012, gold, 0.48, -0.12, -0.31, "z", 16, headPivot);
+      part.headPivot = headPivot;
+      part.leftEyePivot = headPivot.children.find(child => child.name === "left-optical-eye");
+      part.rightEyePivot = headPivot.children.find(child => child.name === "right-optical-eye");
+      part.headRotation = part.headRotation ?? 0;
+      part.headTilt = part.headTilt ?? 0;
+      break;
+    }
+
+    case "walle_body": {
+      const painted = mat(0xe0ad38, 0.58, 0.32);
+      const worn = mat(0xba8827, 0.72, 0.28);
+      const black = mat(0x171c21, 0.12, 0.82);
+      const battery = mat(0x367f67, 0.25, 0.48);
+
+      // Main welded industrial chest.
+      const chassis = roundedExtrudedPanel(1.58, 1.02, 1.18, 0.12, painted, 0, 0.74, 0, 0.035);
+      chassis.parent?.remove(chassis);
+      group.add(chassis);
+      chassis.position.set(0, 0.74, 0);
+      B(1.34, 0.055, 1.02, worn, 0, 1.26, 0);
+      B(0.08, 0.86, 1.05, worn, -0.72, 0.74, 0);
+      B(0.08, 0.86, 1.05, worn, 0.72, 0.74, 0);
+      B(0.12, 0.14, 1.08, silver, -0.82, 0.74, 0);
+      B(0.12, 0.14, 1.08, silver, 0.82, 0.74, 0);
+
+      // Front chest panel with physical divisions and fasteners.
+      B(1.38, 0.72, 0.075, worn, 0, 0.74, -0.62);
+      B(1.20, 0.56, 0.085, painted, 0, 0.74, -0.68);
+      B(0.055, 0.58, 0.095, black, -0.32, 0.74, -0.69);
+      B(0.055, 0.58, 0.095, black, 0.32, 0.74, -0.69);
+      B(1.02, 0.055, 0.095, black, 0, 0.55, -0.69);
+      B(1.02, 0.055, 0.095, black, 0, 0.93, -0.69);
+
+      for (const x of [-0.52, -0.18, 0.18, 0.52]) {
+        for (const y of [0.54, 0.94]) {
+          C(0.038, 0.018, silver, x, y, -0.745, "z", 20);
+          C(0.014, 0.020, dark, x, y, -0.758, "z", 16);
+        }
+      }
+
+      // Battery and electronics bay, with a removable cover and visible wiring.
+      B(0.52, 0.28, 0.58, battery, 0.42, 0.28, 0.48);
+      B(0.48, 0.025, 0.54, black, 0.42, 0.43, 0.48);
+      for (const x of [0.26, 0.58]) {
+        C(0.028, 0.022, silver, x, 0.43, 0.22, "z", 16);
+      }
+      const wireCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(-0.38, 0.43, 0.50),
+        new THREE.Vector3(-0.18, 0.52, 0.47),
+        new THREE.Vector3(-0.05, 0.38, 0.43),
+        new THREE.Vector3(0.12, 0.46, 0.42),
+      ]);
+      const wire = new THREE.Mesh(
+        new THREE.TubeGeometry(wireCurve, 24, 0.018, 8, false),
+        mat(0xd83d32, 0.12, 0.45)
+      );
+      wire.castShadow = true;
+      group.add(wire);
+
+      // Nameplate and maintenance latch.
+      B(0.42, 0.11, 0.018, silver, 0, 1.03, -0.745);
+      C(0.045, 0.025, black, 0, 1.03, -0.762, "z", 20);
+
+      // Track mounting sockets and suspension ears.
+      for (const x of [-0.82, 0.82]) {
+        C(0.14, 0.14, silver, x, 0.30, -0.48, "z", 32);
+        C(0.085, 0.145, dark, x, 0.30, -0.49, "z", 32);
+        B(0.24, 0.12, 0.16, worn, x, 0.12, 0);
+      }
+
+      for (const x of [-0.95, 0.95]) {
+        const armPivot = new THREE.Group();
+        armPivot.name = x < 0 ? "left-mechanical-arm" : "right-mechanical-arm";
+        armPivot.position.set(x, 0.88, 0);
+        group.add(armPivot);
+        const shoulder = new THREE.Mesh(
+          new THREE.SphereGeometry(0.18, 24, 16),
+          silver
+        );
+        shoulder.name = "articulated-shoulder";
+        shoulder.position.set(0, 0, 0);
+        shoulder.castShadow = true;
+        shoulder.receiveShadow = true;
+        armPivot.add(shoulder);
+        C(0.115, 0.18, dark, 0, 0, -0.02, "x", 24, armPivot);
+        C(0.085, 0.58, painted, 0, -0.05, -0.37, "z", 24, armPivot);
+        C(0.11, 0.13, silver, 0, -0.05, -0.72, "z", 24, armPivot);
+        C(0.08, 0.12, worn, 0, -0.05, -0.82, "z", 24, armPivot);
+
+        // Three-finger mechanical pincer/gripper.
+        for (const fingerY of [-0.17, 0.17]) {
+          const finger = B(0.08, 0.11, 0.30, silver, 0, fingerY - 0.05, -1.03, armPivot);
+          finger.rotation.x = fingerY < 0 ? -0.22 : 0.22;
+        }
+        B(0.32, 0.09, 0.08, dark, 0, -0.05, -0.91, armPivot);
+        if (x < 0) part.leftArmPivot = armPivot;
+        else part.rightArmPivot = armPivot;
+      }
+      C(0.22, 0.12, silver, 0, 1.32, 0, "y", 32);
+      break;
+    }
+
+    case "walle_tracks": {
+      const worn = mat(0x8d7447, 0.68, 0.34);
+      part.trackPivots = {};
+      for (const side of [-1, 1]) {
+        const trackPivot = new THREE.Group();
+        trackPivot.name = side < 0 ? "left-caterpillar-track" : "right-caterpillar-track";
+        trackPivot.position.set(side * 0.96, 0.42, 0);
+        group.add(trackPivot);
+
+        // Rounded track belt backing. Two complete assemblies remain independent.
+        const beltShape = new THREE.Shape();
+        beltShape.moveTo(-0.82, -0.24);
+        beltShape.quadraticCurveTo(-0.82, -0.44, -0.62, -0.44);
+        beltShape.lineTo(0.62, -0.44);
+        beltShape.quadraticCurveTo(0.82, -0.44, 0.82, -0.24);
+        beltShape.lineTo(0.82, 0.24);
+        beltShape.quadraticCurveTo(0.82, 0.44, 0.62, 0.44);
+        beltShape.lineTo(-0.62, 0.44);
+        beltShape.quadraticCurveTo(-0.82, 0.44, -0.82, 0.24);
+        beltShape.closePath();
+        const beltGeometry = new THREE.ExtrudeGeometry(beltShape, {
+          depth: 0.18,
+          bevelEnabled: true,
+          bevelSegments: 3,
+          bevelSize: 0.025,
+          bevelThickness: 0.025,
+          curveSegments: 12,
+        });
+        beltGeometry.center();
+        const belt = new THREE.Mesh(beltGeometry, rubber);
+        belt.rotation.y = Math.PI / 2;
+        belt.position.set(0, 0, 0);
+        belt.castShadow = true;
+        belt.receiveShadow = true;
+        trackPivot.add(belt);
+
+        // Drive sprocket at the rear, idler at the front, and several rollers.
+        for (const z of [-0.66, 0.66]) {
+          C(0.30, 0.20, silver, 0, -0.02, z, "x", 36, trackPivot);
+          C(0.225, 0.212, dark, 0, -0.02, z, "x", 36, trackPivot);
+          C(0.15, 0.218, gold, 0, -0.02, z, "x", 24, trackPivot);
+          C(0.06, 0.224, dark, 0, -0.02, z, "x", 16, trackPivot);
+          for (let tooth = 0; tooth < 12; tooth++) {
+            const angle = tooth * Math.PI * 2 / 12;
+            const toothMesh = B(0.23, 0.055, 0.055, silver,
+              Math.cos(angle) * 0.285,
+              -0.02 + Math.sin(angle) * 0.285,
+              z,
+              trackPivot
+            );
+            toothMesh.rotation.x = angle;
+          }
+        }
+        for (const z of [-0.34, -0.11, 0.12, 0.35]) {
+          C(0.145, 0.205, silver, 0, -0.20, z, "x", 24, trackPivot);
+          C(0.105, 0.212, dark, 0, -0.20, z, "x", 24, trackPivot);
+        }
+        C(0.11, 0.20, silver, 0, 0.19, -0.12, "x", 24, trackPivot);
+        C(0.11, 0.20, silver, 0, 0.19, 0.22, "x", 24, trackPivot);
+
+        // Individual interlocking tread plates across the top and bottom runs.
+        for (let i = 0; i < 16; i++) {
+          const z = -0.73 + i * 0.097;
+          const top = B(0.23, 0.075, 0.075, dark, 0, 0.41, z, trackPivot);
+          top.rotation.y = (i % 2) * 0.06 - 0.03;
+          const bottom = B(0.23, 0.075, 0.075, dark, 0, -0.43, z, trackPivot);
+          bottom.rotation.y = (i % 2) * -0.06 + 0.03;
+          for (const treadSide of [-0.055, 0.055]) {
+            B(0.018, 0.055, 0.050, silver, treadSide, 0.41, z, trackPivot);
+          }
+        }
+        for (let i = 0; i < 7; i++) {
+          const angle = (i / 6) * Math.PI;
+          for (const endZ of [-0.73, 0.73]) {
+            const tread = B(0.23, 0.072, 0.075, dark,
+              0,
+              -0.02 + Math.cos(angle) * 0.39,
+              endZ + (endZ < 0 ? -1 : 1) * Math.sin(angle) * 0.01,
+              trackPivot
+            );
+            tread.rotation.x = endZ < 0 ? angle : -angle;
+          }
+        }
+
+        // Visible suspension arms and cross-bracing.
+        for (const z of [-0.62, 0.62]) {
+          B(0.09, 0.52, 0.055, silver, 0, -0.02, z, trackPivot).rotation.x = 0.18;
+          C(0.035, 0.11, gold, 0, -0.22, z, "x", 20, trackPivot);
+        }
+        B(0.08, 0.08, 1.36, worn, 0, -0.35, 0, trackPivot);
+        B(0.10, 0.08, 1.36, silver, 0, 0.30, 0, trackPivot);
+
+        part.trackPivots[side < 0 ? "left" : "right"] = trackPivot;
+      }
+      part.trackRadius = 0.32;
+      part.leftTrackSpeed = part.leftTrackSpeed ?? 100;
+      part.rightTrackSpeed = part.rightTrackSpeed ?? 100;
+      break;
+    }
+
     // 1. Basic DC motor
     case "motor_basic":
       C(0.17, 0.38, silver, 0, 0.7, 0, "z", 32);
@@ -1471,6 +1760,9 @@ function defaultPos(id) {
   if (id === "chassis_basic") {
     return { x: 0, y: 0, z: 0 };
   }
+  if (id === "walle_tracks") return { x: 0, y: 0, z: 0 };
+  if (id === "walle_body") return { x: 0, y: 1.0, z: 0 };
+  if (id === "walle_head") return { x: 0, y: 2.18, z: 0 };
 
   // Rover bodies are chassis-sized models and belong at the assembly origin.
   if (id.startsWith("nasa_") && id.endsWith("_body")) {
@@ -2004,6 +2296,11 @@ function add(id, position, trackHistory = true) {
     sensorEnabled: true,
     sensorRange: Number(component.range_m) || undefined
   };
+  if (id === "walle_body") {
+    part.bodyMass = component.mass_kg;
+    part.batteryWeight = component.battery_mass_kg;
+    part.mass = component.mass_kg + component.battery_mass_kg;
+  }
 
   part.group = geometry(part);
 
@@ -2343,7 +2640,79 @@ function renderComponentControls() {
   const controls = host;
   const torque = Number(component.max_torque_nm ?? component.stall_torque_nm);
 
-  if (isMotorPart(part) || component.category === "actuator") {
+  if (part.componentId === "walle_head") {
+    addControlField(controls, "Head rotation", part, "head-rotation", {
+      min: -75, max: 75, step: 1,
+      value: part.headRotation ?? 0,
+      valueText: `${Math.round(part.headRotation ?? 0)}°`
+    });
+    addControlField(controls, "Head tilt", part, "head-tilt", {
+      min: -35, max: 35, step: 1,
+      value: part.headTilt ?? 0,
+      valueText: `${Math.round(part.headTilt ?? 0)}°`
+    });
+    addControlField(controls, "Left eye", part, "left-eye", {
+      min: -20, max: 20, step: 1,
+      value: part.leftEye ?? 0,
+      valueText: `${Math.round(part.leftEye ?? 0)}°`
+    });
+    addControlField(controls, "Right eye", part, "right-eye", {
+      min: -20, max: 20, step: 1,
+      value: part.rightEye ?? 0,
+      valueText: `${Math.round(part.rightEye ?? 0)}°`
+    });
+    const sensor = document.createElement("span");
+    sensor.className = "component-spec";
+    sensor.textContent = "Camera and distance sensor are represented; live readings are not implemented.";
+    controls.append(sensor);
+  } else if (part.componentId === "walle_body") {
+    addControlField(controls, "Body mass", part, "body-mass", {
+      min: 3, max: 30, step: 0.1,
+      value: part.bodyMass ?? component.mass_kg,
+      valueText: `${Number(part.bodyMass ?? component.mass_kg).toFixed(1)} kg`
+    });
+    addControlField(controls, "Battery weight", part, "battery-weight", {
+      min: 0, max: 20, step: 0.1,
+      value: part.batteryWeight ?? component.battery_mass_kg,
+      valueText: `${Number(part.batteryWeight ?? component.battery_mass_kg).toFixed(1)} kg`
+    });
+    addControlField(controls, "Center of gravity Z", part, "body-cog", {
+      min: -0.5, max: 0.5, step: 0.01,
+      value: part.bodyCog ?? 0,
+      valueText: `${Number(part.bodyCog ?? 0).toFixed(2)} m`
+    });
+    addControlField(controls, "Left arm angle", part, "left-arm", {
+      min: -90, max: 90, step: 1,
+      value: part.leftArm ?? 0,
+      valueText: `${Math.round(part.leftArm ?? 0)}°`
+    });
+    addControlField(controls, "Right arm angle", part, "right-arm", {
+      min: -90, max: 90, step: 1,
+      value: part.rightArm ?? 0,
+      valueText: `${Math.round(part.rightArm ?? 0)}°`
+    });
+    addControlField(controls, "Body length", part, "body-length", {
+      min: 0.8, max: 3, step: 0.05,
+      value: part.bodyLength ?? 1.8,
+      valueText: `${Number(part.bodyLength ?? 1.8).toFixed(2)} m`
+    });
+  } else if (part.componentId === "walle_tracks") {
+    addControlField(controls, "Left track speed", part, "left-track-speed", {
+      min: -100, max: 100, step: 1,
+      value: part.leftTrackSpeed ?? 100,
+      valueText: `${Math.round(part.leftTrackSpeed ?? 100)}`
+    });
+    addControlField(controls, "Right track speed", part, "right-track-speed", {
+      min: -100, max: 100, step: 1,
+      value: part.rightTrackSpeed ?? 100,
+      valueText: `${Math.round(part.rightTrackSpeed ?? 100)}`
+    });
+    addControlField(controls, "Motor torque", part, "track-torque", {
+      min: 0, max: 10, step: 0.05,
+      value: part.trackTorque ?? component.max_torque_nm,
+      valueText: `${Number(part.trackTorque ?? component.max_torque_nm).toFixed(2)} N m`
+    });
+  } else if (isMotorPart(part) || component.category === "actuator") {
     addControlField(controls, "Motor power", part, "powered", {
       checkbox: true,
       checked: part.powered !== false
@@ -2503,6 +2872,46 @@ function handleComponentControl(event) {
   const value = target.type === "checkbox" ? target.checked : target.value;
   if (key === "powered") setPartPowered(part, value);
   if (key === "rpm") part.rpm = Number(value);
+  if (key === "head-rotation") {
+    part.headRotation = Number(value);
+    if (part.headPivot) part.headPivot.rotation.y = THREE.MathUtils.degToRad(part.headRotation);
+  }
+  if (key === "head-tilt") {
+    part.headTilt = Number(value);
+    if (part.headPivot) part.headPivot.rotation.x = THREE.MathUtils.degToRad(part.headTilt);
+  }
+  if (key === "left-eye") {
+    part.leftEye = Number(value);
+    if (part.leftEyePivot) part.leftEyePivot.rotation.y = THREE.MathUtils.degToRad(part.leftEye);
+  }
+  if (key === "right-eye") {
+    part.rightEye = Number(value);
+    if (part.rightEyePivot) part.rightEyePivot.rotation.y = THREE.MathUtils.degToRad(part.rightEye);
+  }
+  if (key === "body-mass") {
+    part.bodyMass = Number(value);
+    part.mass = part.bodyMass + Number(part.batteryWeight ?? 2);
+  }
+  if (key === "battery-weight") {
+    part.batteryWeight = Number(value);
+    part.mass = Number(part.bodyMass ?? 7.5) + part.batteryWeight;
+  }
+  if (key === "body-cog") part.bodyCog = Number(value);
+  if (key === "left-arm") {
+    part.leftArm = Number(value);
+    if (part.leftArmPivot) part.leftArmPivot.rotation.z = THREE.MathUtils.degToRad(part.leftArm);
+  }
+  if (key === "right-arm") {
+    part.rightArm = Number(value);
+    if (part.rightArmPivot) part.rightArmPivot.rotation.z = THREE.MathUtils.degToRad(part.rightArm);
+  }
+  if (key === "body-length") {
+    part.bodyLength = Number(value);
+    part.group.scale.z = part.bodyLength / 1.8;
+  }
+  if (key === "left-track-speed") part.leftTrackSpeed = Number(value);
+  if (key === "right-track-speed") part.rightTrackSpeed = Number(value);
+  if (key === "track-torque") part.trackTorque = Number(value);
   if (key === "servo-angle") {
     part.servoAngle = Number(value);
     if (part.servoPivot) {
@@ -2730,11 +3139,14 @@ function saveRobotConfigurationForTesting() {
   const motorParts = parts.filter(
     part => isMotorPart(part) && part.powered !== false
   );
+  const walleTracks = parts.find(part => part.componentId === "walle_tracks");
   const wheelParts = parts.filter(isWheelPart);
-  const chassisPresent = parts.some(part => part.componentId === "chassis_basic");
+  const chassisPresent = parts.some(part =>
+    part.componentId === "chassis_basic" || part.componentId === "walle_body"
+  );
 
-  if (!chassisPresent || !motorParts.length || !wheelParts.length) {
-    showError("Add a chassis, a powered motor and a wheel before opening the Testing Lab.");
+  if (!chassisPresent || (!motorParts.length && !walleTracks) || !wheelParts.length) {
+    showError("Add a chassis/module body, powered motor or track drive, and mobility assembly.");
     return false;
   }
 
@@ -2761,8 +3173,12 @@ function saveRobotConfigurationForTesting() {
     }
     return values.reduce((sum, value) => sum + value, 0) / values.length;
   };
-  const torque = average(motorParts, "max_torque_nm", 0.5, "motor torque");
-  const wheelRadius = average(wheelParts, "radius_m", 0.05, "wheel radius");
+  const torque = walleTracks
+    ? Number(walleTracks.trackTorque ?? 2.5)
+    : average(motorParts, "max_torque_nm", 0.5, "motor torque");
+  const wheelRadius = walleTracks
+    ? 0.32
+    : average(wheelParts, "radius_m", 0.05, "wheel radius");
   const batteryVoltage = batteries.length
     ? average(batteries, "voltage_v", 12, "battery voltage")
     : 12;
@@ -2780,7 +3196,7 @@ function saveRobotConfigurationForTesting() {
     configuration: {
       total_mass_kg: Math.max(parts.reduce((sum, part) => sum + part.mass, 0), 0.01),
       motor_torque_nm: torque,
-      motor_count: motorParts.length,
+      motor_count: walleTracks ? 2 : motorParts.length,
       wheel_radius_m: wheelRadius,
       wheel_count: wheelParts.length,
       motor_rpm: 100,
@@ -2812,6 +3228,11 @@ function saveRobotConfigurationForTesting() {
 }
 
 const ROBOT_TEMPLATES = {
+  "walle": [
+    ["walle_tracks", { x: 0, y: 0.42, z: 0 }],
+    ["walle_body", { x: 0, y: 0.95, z: 0 }],
+    ["walle_head", { x: 0, y: 2.05, z: -0.05 }],
+  ],
   "two-wheel": [
     ["chassis_basic", { x: 0, y: 0, z: 0 }],
     ["motor_geared", { x: -0.75, y: 0.45, z: 0 }],
@@ -2874,6 +3295,19 @@ function serializeDesign() {
       wheelAngle: part.wheelAngle,
       wheelSteering: part.wheelSteering,
       servoAngle: part.servoAngle,
+      headRotation: part.headRotation,
+      headTilt: part.headTilt,
+      leftEye: part.leftEye,
+      rightEye: part.rightEye,
+      bodyMass: part.bodyMass,
+      batteryWeight: part.batteryWeight,
+      bodyCog: part.bodyCog,
+      leftArm: part.leftArm,
+      rightArm: part.rightArm,
+      bodyLength: part.bodyLength,
+      leftTrackSpeed: part.leftTrackSpeed,
+      rightTrackSpeed: part.rightTrackSpeed,
+      trackTorque: part.trackTorque,
     })),
   };
 }
@@ -2940,6 +3374,28 @@ function loadLocalDesign() {
     part.wheelAngle = saved.wheelAngle;
     part.wheelSteering = saved.wheelSteering;
     part.servoAngle = saved.servoAngle;
+    part.headRotation = saved.headRotation;
+    part.headTilt = saved.headTilt;
+    part.leftEye = saved.leftEye;
+    part.rightEye = saved.rightEye;
+    part.bodyMass = saved.bodyMass;
+    part.batteryWeight = saved.batteryWeight;
+    part.bodyCog = saved.bodyCog;
+    part.leftArm = saved.leftArm;
+    part.rightArm = saved.rightArm;
+    part.bodyLength = saved.bodyLength;
+    part.leftTrackSpeed = saved.leftTrackSpeed;
+    part.rightTrackSpeed = saved.rightTrackSpeed;
+    part.trackTorque = saved.trackTorque;
+    if (part.headPivot) {
+      part.headPivot.rotation.y = THREE.MathUtils.degToRad(part.headRotation ?? 0);
+      part.headPivot.rotation.x = THREE.MathUtils.degToRad(part.headTilt ?? 0);
+    }
+    if (part.leftEyePivot) part.leftEyePivot.rotation.y = THREE.MathUtils.degToRad(part.leftEye ?? 0);
+    if (part.rightEyePivot) part.rightEyePivot.rotation.y = THREE.MathUtils.degToRad(part.rightEye ?? 0);
+    if (part.leftArmPivot) part.leftArmPivot.rotation.z = THREE.MathUtils.degToRad(part.leftArm ?? 0);
+    if (part.rightArmPivot) part.rightArmPivot.rotation.z = THREE.MathUtils.degToRad(part.rightArm ?? 0);
+    if (part.bodyLength) part.group.scale.z = part.bodyLength / 1.8;
   }
   if ($("design-name")) $("design-name").value = design.name || "Untitled robot";
   update();
@@ -3765,11 +4221,12 @@ function driveRobot(direction) {
     return;
   }
 
-  const chassis = parts.find(
-    part => part.componentId === "chassis_basic"
+  const chassis = parts.find(part =>
+    part.componentId === "chassis_basic" || part.componentId === "walle_body"
   );
   const activeMotors = parts.filter(
-    part => isMotorPart(part) && part.powered !== false
+    part => (isMotorPart(part) || part.componentId === "walle_tracks") &&
+      part.powered !== false
   );
 
   if (
@@ -3827,10 +4284,26 @@ function driveRobot(direction) {
       assemblyRoot.position.addScaledVector(forward, distance);
       assemblyRoot.rotation.y +=
         driveVelocity / 1.36 * Math.tan(steeringAngle) * delta;
+      for (const trackPart of parts.filter(part => part.componentId === "walle_tracks")) {
+        const leftSpeed = Number(trackPart.leftTrackSpeed ?? 100);
+        const rightSpeed = Number(trackPart.rightTrackSpeed ?? 100);
+        const differential = (rightSpeed - leftSpeed) / 200;
+        assemblyRoot.rotation.y += differential * 1.8 * delta;
+      }
 
       for (const part of parts.filter(isWheelPart)) {
         if (part.wheelPivot && part.wheelRadius) {
           part.wheelPivot.rotation.x += distance / part.wheelRadius;
+        }
+        if (part.trackPivots) {
+          const leftSpeed = (part.leftTrackSpeed ?? 100) / 100;
+          const rightSpeed = (part.rightTrackSpeed ?? 100) / 100;
+          const steeringScale = steeringInput ? 0.45 : 1;
+          part.trackPivots.left.rotation.x +=
+            distance / 0.32 * leftSpeed * steeringScale;
+          part.trackPivots.right.rotation.x +=
+            distance / 0.32 * rightSpeed *
+            (steeringInput ? (steeringInput > 0 ? 0.45 : 1) : steeringScale);
         }
       }
 

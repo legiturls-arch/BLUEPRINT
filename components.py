@@ -3,6 +3,52 @@
 # The original five component IDs and core specifications are preserved.
 
 COMPONENTS = [
+    # -------------------- WALL-E INSPIRED MODULAR ASSEMBLY --------------------
+    {
+        "id": "walle_head",
+        "name": "WALL-E Binocular Head",
+        "category": "robotics",
+        "mass_kg": 1.2,
+        "description": "Yellow binocular head module with neck servo, pan/tilt joints, camera and distance-sensor representation.",
+        "tags": ["walle", "head", "binocular", "camera", "servo", "robot"],
+        "library": "engineering",
+        "spec_status": "example",
+        "dimensions_m": {"length": 0.7, "width": 0.9, "height": 0.55},
+        "connection_points": ["body-neck-mount"],
+        "supported_joints": ["head-pan", "head-tilt", "left-eye", "right-eye"],
+        "editable_parameters": ["head_rotation_deg", "head_tilt_deg", "left_eye_deg", "right_eye_deg"],
+    },
+    {
+        "id": "walle_body",
+        "name": "WALL-E Industrial Body",
+        "category": "structure",
+        "mass_kg": 7.5,
+        "battery_mass_kg": 2.0,
+        "description": "Yellow rectangular industrial body with articulated arms, battery bay and track mounting points.",
+        "tags": ["walle", "body", "chassis", "battery", "industrial", "robot"],
+        "library": "engineering",
+        "spec_status": "example",
+        "dimensions_m": {"length": 1.8, "width": 1.35, "height": 1.05},
+        "connection_points": ["head-neck-mount", "left-track-mount", "right-track-mount"],
+        "supported_joints": ["left-arm", "right-arm"],
+        "editable_parameters": ["body_mass_kg", "battery_weight_kg", "length_m", "width_m", "height_m", "center_of_gravity_z_m"],
+    },
+    {
+        "id": "walle_tracks",
+        "name": "WALL-E Tracked Drive Assembly",
+        "category": "mechanical",
+        "mass_kg": 5.0,
+        "max_torque_nm": 2.5,
+        "track_radius_m": 0.32,
+        "description": "Independent left/right caterpillar track assembly with sprockets, rollers and differential steering.",
+        "tags": ["walle", "tracks", "crawler", "differential", "mobility", "robot"],
+        "library": "engineering",
+        "spec_status": "example",
+        "dimensions_m": {"length": 1.9, "width": 1.8, "height": 0.7},
+        "connection_points": ["left-body-mount", "right-body-mount"],
+        "supported_joints": ["left-track-drive", "right-track-drive"],
+        "editable_parameters": ["left_motor_speed", "right_motor_speed", "motor_torque_nm", "track_speed"],
+    },
     # -------------------- ORIGINAL COMPONENTS --------------------
     {
     "id": "motor_basic",

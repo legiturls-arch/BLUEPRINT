@@ -149,6 +149,18 @@ def test_assembly_validation_passes_complete_mobile_robot(client):
     assert body["counts"]["motor"] == 1
 
 
+def test_walle_modular_assembly_validation(client):
+    response = client.post("/api/assembly/validate", json={
+        "component_ids": ["walle_head", "walle_body", "walle_tracks"]
+    })
+    assert response.status_code == 200
+    body = response.json()
+    assert body["valid"] is True
+    assert body["counts"]["walle_head"] == 1
+    assert body["counts"]["walle_body"] == 1
+    assert body["counts"]["walle_tracks"] == 1
+
+
 def test_assembly_validation_reports_missing_required_parts(client):
     response = client.post("/api/assembly/validate", json={
         "component_ids": ["battery_basic", "sensor_basic"]
@@ -172,7 +184,7 @@ def test_components_route(client):
     components = response.json()["components"]
 
     # Keep the route assertion aligned with the current catalogue entries.
-    assert len(components) == 32
+    assert len(components) == 35
 
     # Find the basic motor without depending on its list position.
     motor = next(
